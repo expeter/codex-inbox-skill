@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added connected GitHub repository, homepage, issue, and clone metadata for the initial publication.
 - Added a GitHub-facing README with installation, trial, configuration, safety, and development guidance.
 - Added optional tested project accent palettes for distinguishing concurrent inboxes.
 - Added removable screenshot previews in a horizontally scrolling strip while retaining the four-image limit.

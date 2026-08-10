@@ -30,8 +30,8 @@ There are no runtime dependencies and no `npm install` step.
 Clone this repository using its GitHub URL, then point the inbox at a project:
 
 ```bash
-git clone <repository-url>
-cd project-inbox
+git clone https://github.com/expeter/codex-inbox-skill.git
+cd codex-inbox-skill
 npm test
 npm run start -- --root /absolute/path/to/your/project --port 0
 ```
@@ -56,7 +56,7 @@ Codex can prompt its built-in `$skill-installer` to download skills from other r
 
 ```bash
 mkdir -p ~/.agents/skills
-git clone <repository-url> ~/.agents/skills/project-inbox
+git clone https://github.com/expeter/codex-inbox-skill.git ~/.agents/skills/project-inbox
 ```
 
 Then, from the project that should receive captures, ask Codex:

@@ -18,3 +18,4 @@ None.
 - `CR-003` — Distinguished the configured project name from its shortened filesystem and inbox paths. Covered by focused page rendering tests.
 - `CR-004` — Added a human-facing GitHub README and completed the publication-readiness audit. Verified with link, CLI, test, skill, Git integrity, and secrets checks.
 - `FR-005` — Added validated project accent palettes for distinguishing concurrent inboxes while retaining project name and path as primary identity cues. Covered by configuration and rendering tests.
+- `CR-005` — Replaced publication placeholders with the connected GitHub URL and added repository, homepage, and issue metadata. Verified with the focused test suite, skill validation, and placeholder checks.
