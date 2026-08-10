@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-08-10
 
+- Removed repository-specific references to a local development helper from the published project instructions.
 - Added connected GitHub repository, homepage, issue, and clone metadata for the initial publication.
 - Added a GitHub-facing README with installation, trial, configuration, safety, and development guidance.
 - Added optional tested project accent palettes for distinguishing concurrent inboxes.
