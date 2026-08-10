@@ -1,5 +1,8 @@
 {
   "projectName": "Project Inbox",
+  "appearance": {
+    "accent": "violet"
+  },
   "workflow": {
     "profile": "spec-driven",
     "label": "SPEC-001 repository workflow",

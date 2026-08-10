@@ -6,6 +6,9 @@ Place `.project-inbox.json` in the project root. All fields are optional.
 {
   "projectName": "My project",
   "inboxDir": "inbox",
+  "appearance": {
+    "accent": "blue"
+  },
   "workflow": {
     "label": "Repository ticket workflow",
     "instructions": "Read AGENTS.md and register a ticket before implementation."
@@ -15,6 +18,7 @@ Place `.project-inbox.json` in the project root. All fields are optional.
 
 - `projectName` appears in the capture page and saved item.
 - `inboxDir` must be a relative path inside the project root.
+- `appearance.accent` optionally identifies the project with a tested `green`, `blue`, `violet`, `amber`, or `rose` palette. It affects both light and dark themes; `green` is the default.
 - `workflow.label` names the workflow that owns new items.
 - `workflow.instructions` is stored as processing guidance. It supplements but never overrides repository instructions or the current user's request.
 

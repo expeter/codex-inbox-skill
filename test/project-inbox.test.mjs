@@ -35,6 +35,9 @@ test('configuration keeps the inbox inside the project root', async () => {
   assert.equal(config.projectName, 'Paper trail')
   assert.equal(config.inboxDir, '.feedback/inbox')
   assert.equal(config.workflow.label, 'Ticket register')
+  assert.equal(config.appearance.accent, 'green')
+  assert.equal(normalizeConfig(root, { appearance: { accent: 'violet' } }).appearance.accent, 'violet')
+  assert.throws(() => normalizeConfig(root, { appearance: { accent: 'neon' } }), /must be one of/)
 })
 
 test('the SPEC-driven profile is optional and validates portable workflow locations', async () => {
@@ -60,8 +63,11 @@ test('the SPEC-driven profile is optional and validates portable workflow locati
 
 test('the capture page keeps its small controls contextual', async () => {
   const root = await temporaryProject()
-  const genericPage = renderInboxPage(normalizeConfig(root, { projectName: 'Paper trail' }))
+  const genericPage = renderInboxPage(normalizeConfig(root, {
+    projectName: 'Paper trail', appearance: { accent: 'violet' },
+  }))
   assert.match(genericPage, /<h1>Paper trail<\/h1>/)
+  assert.match(genericPage, /data-accent="violet"/)
   assert.match(genericPage, /path: \/tmp\/project-inbox-/)
   assert.match(genericPage, /remove-image/)
   assert.match(genericPage, /overflow-x: auto/)

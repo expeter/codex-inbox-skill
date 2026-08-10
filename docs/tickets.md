@@ -16,3 +16,5 @@ None.
 - `FR-004` — Added a minimal light or dark preference persisted in browser storage. Covered by focused page rendering tests.
 - `CR-002` — Linked SPEC-driven recent captures to the configured read-only ticket register without workflow management. Covered by profile and path-containment server tests.
 - `CR-003` — Distinguished the configured project name from its shortened filesystem and inbox paths. Covered by focused page rendering tests.
+- `CR-004` — Added a human-facing GitHub README and completed the publication-readiness audit. Verified with link, CLI, test, skill, Git integrity, and secrets checks.
+- `FR-005` — Added validated project accent palettes for distinguishing concurrent inboxes while retaining project name and path as primary identity cues. Covered by configuration and rendering tests.

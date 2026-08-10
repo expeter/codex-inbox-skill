@@ -3,6 +3,7 @@ import { basename, isAbsolute, relative, resolve } from 'node:path'
 
 export const CONFIG_FILE = '.project-inbox.json'
 export const SPEC_DRIVEN_PROFILE = 'spec-driven'
+export const ACCENT_NAMES = ['green', 'blue', 'violet', 'amber', 'rose']
 
 const DEFAULT_TICKET_PREFIXES = ['FR', 'CR', 'BUG', 'SPEC']
 const SPEC_DRIVEN_INSTRUCTIONS = 'Register a stable ticket before implementation. Read repository instructions and relevant specifications. Mark the inbox item triaged only after ticket registration, and done only after focused regression coverage and durable documentation are current. Record user-visible changes in the changelog, resolve completed work explicitly, commit verified work unless asked not to, and never push without an explicit request.'
@@ -11,6 +12,7 @@ export function defaultConfig(projectRoot) {
   return {
     projectName: basename(projectRoot),
     inboxDir: 'inbox',
+    appearance: { accent: 'green' },
     workflow: {
       profile: 'generic',
       label: 'Project workflow',
@@ -74,6 +76,15 @@ export function normalizeConfig(projectRoot, input = {}) {
     throw new Error('inboxDir must stay inside the project root.')
   }
 
+  const appearance = input.appearance === undefined ? {} : input.appearance
+  if (!appearance || typeof appearance !== 'object' || Array.isArray(appearance)) {
+    throw new Error('appearance must be a JSON object.')
+  }
+  const accent = requiredString(appearance.accent, defaults.appearance.accent, 'appearance.accent')
+  if (!ACCENT_NAMES.includes(accent)) {
+    throw new Error(`appearance.accent must be one of: ${ACCENT_NAMES.join(', ')}.`)
+  }
+
   const workflow = input.workflow === undefined ? {} : input.workflow
   if (!workflow || typeof workflow !== 'object' || Array.isArray(workflow)) {
     throw new Error('workflow must be a JSON object.')
@@ -94,6 +105,7 @@ export function normalizeConfig(projectRoot, input = {}) {
     projectName: requiredString(input.projectName, defaults.projectName, 'projectName'),
     inboxDir: relativeInboxPath || '.',
     inboxPath,
+    appearance: { accent },
     workflow: {
       profile,
       label: requiredString(workflow.label, defaults.workflow.label, 'workflow.label'),

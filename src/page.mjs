@@ -29,7 +29,7 @@ export function renderInboxPage(config) {
     ? '<a class="ticket-link" href="/workflow/tickets" target="_blank" rel="noreferrer">ticket states ↗</a>'
     : ''
   return String.raw`<!doctype html>
-<html lang="en">
+<html lang="en" data-accent="${html(config.appearance.accent)}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,7 +52,7 @@ export function renderInboxPage(config) {
       --line: #3b4038;
       --strong-line: #4b5048;
       --muted: #a4aa9c;
-      --green: #a8d58d;
+      --accent: #a8d58d;
       --amber: #e2bd6c;
       --red: #ef9188;
       --button: #2e4729;
@@ -60,6 +60,10 @@ export function renderInboxPage(config) {
       --button-text: #f5f8f1;
       --shadow: #0008;
     }
+    :root[data-accent="blue"] { --accent: #8fc7ed; --button: #233f54; --button-line: #6797b9; }
+    :root[data-accent="violet"] { --accent: #c3adf2; --button: #3b3153; --button-line: #8874b4; }
+    :root[data-accent="amber"] { --accent: #e2bd6c; --button: #4b3b21; --button-line: #a98746; }
+    :root[data-accent="rose"] { --accent: #eea0ae; --button: #4d2d35; --button-line: #ad6876; }
     :root[data-theme="light"] {
       color-scheme: light;
       --page: #edece5;
@@ -75,7 +79,7 @@ export function renderInboxPage(config) {
       --line: #cdd2c7;
       --strong-line: #aab2a5;
       --muted: #687164;
-      --green: #356d2e;
+      --accent: #356d2e;
       --amber: #9b6814;
       --red: #a33d35;
       --button: #dcebd5;
@@ -83,6 +87,10 @@ export function renderInboxPage(config) {
       --button-text: #193416;
       --shadow: #38412f2b;
     }
+    :root[data-theme="light"][data-accent="blue"] { --accent: #27678f; --button: #d9ebf5; --button-line: #6b98b5; --button-text: #183449; }
+    :root[data-theme="light"][data-accent="violet"] { --accent: #684ca0; --button: #e8e0f5; --button-line: #917bb6; --button-text: #302147; }
+    :root[data-theme="light"][data-accent="amber"] { --accent: #8a5c10; --button: #f5ead1; --button-line: #b28b45; --button-text: #44300e; }
+    :root[data-theme="light"][data-accent="rose"] { --accent: #a33f58; --button: #f5dfe4; --button-line: #bd7888; --button-text: #4c1f2b; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -120,7 +128,7 @@ export function renderInboxPage(config) {
     .path { margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .theme-toggle { margin-left: auto; padding: 5px 8px; border-color: var(--line); background: transparent; color: var(--text); font-size: 14px; line-height: 1; }
     .content { padding: clamp(22px, 5vw, 46px); }
-    .prompt { color: var(--green); font-weight: 700; }
+    .prompt { color: var(--accent); font-weight: 700; }
     h1 { margin: 10px 0 12px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: clamp(30px, 6vw, 48px); letter-spacing: -.035em; }
     .intro { max-width: 650px; margin: 0; color: var(--soft-text); font: 16px/1.6 ui-sans-serif, system-ui, sans-serif; }
     .meta { display: flex; flex-wrap: wrap; gap: 9px; margin: 20px 0 24px; }
@@ -149,7 +157,7 @@ export function renderInboxPage(config) {
     #dropzone.has-image .empty { display: none; }
     .empty strong { display: block; margin-bottom: 9px; color: var(--text); font: 650 18px ui-sans-serif, system-ui, sans-serif; }
     .empty span { color: var(--muted); font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
-    label { display: block; margin: 0 0 8px; color: var(--green); font-size: 13px; font-weight: 700; }
+    label { display: block; margin: 0 0 8px; color: var(--accent); font-size: 13px; font-weight: 700; }
     textarea {
       width: 100%; min-height: 120px; resize: vertical;
       padding: 14px 15px; border: 1px solid var(--strong-line); border-radius: 7px;
@@ -160,11 +168,11 @@ export function renderInboxPage(config) {
     button { padding: 11px 17px; border: 1px solid var(--button-line); border-radius: 6px; background: var(--button); color: var(--button-text); font: 700 14px ui-monospace, monospace; cursor: pointer; }
     button:disabled { opacity: .55; cursor: wait; }
     #status { min-height: 22px; color: var(--muted); font-size: 13px; }
-    #status.success { color: var(--green); }
+    #status.success { color: var(--accent); }
     #status.error { color: var(--red); }
     .recent { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
     .recent-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
-    .recent h2 { margin: 0; font: 700 14px ui-monospace, monospace; color: var(--green); }
+    .recent h2 { margin: 0; font: 700 14px ui-monospace, monospace; color: var(--accent); }
     .ticket-link { color: var(--amber); font-size: 12px; text-decoration: none; }
     .ticket-link:hover { text-decoration: underline; }
     #recent-list { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }

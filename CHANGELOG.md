@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a GitHub-facing README with installation, trial, configuration, safety, and development guidance.
+- Added optional tested project accent palettes for distinguishing concurrent inboxes.
 - Added removable screenshot previews in a horizontally scrolling strip while retaining the four-image limit.
 - Added a persistent light or dark appearance toggle stored in the browser.
 - Added a read-only link to the configured ticket register for SPEC-driven projects.
