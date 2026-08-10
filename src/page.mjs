@@ -82,8 +82,9 @@ export function renderInboxPage(config) {
       transition: border-color .15s, background .15s;
     }
     #dropzone.dragging { border-color: var(--amber); background: #24251e; }
-    #dropzone img { display: none; max-width: 100%; max-height: 380px; object-fit: contain; border-radius: 5px; }
-    #dropzone.has-image img { display: block; }
+    #previews { display: none; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    #previews img { width: 100%; max-height: 260px; object-fit: contain; border-radius: 5px; background: #10120f; }
+    #dropzone.has-image #previews { display: grid; }
     #dropzone.has-image .empty { display: none; }
     .empty strong { display: block; margin-bottom: 9px; color: #e6e9e0; font: 650 18px ui-sans-serif, system-ui, sans-serif; }
     .empty span { color: var(--muted); font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
@@ -100,6 +101,11 @@ export function renderInboxPage(config) {
     #status { min-height: 22px; color: var(--muted); font-size: 13px; }
     #status.success { color: var(--green); }
     #status.error { color: var(--red); }
+    .recent { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .recent h2 { margin: 0 0 12px; font: 700 14px ui-monospace, monospace; color: var(--green); }
+    #recent-list { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }
+    #recent-list li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid #30342e; }
+    #recent-list .item-id { flex: 1; overflow: hidden; color: #d5d9cf; text-overflow: ellipsis; white-space: nowrap; }
     input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     @media (max-width: 560px) { .content { padding: 22px; } .actions { align-items: stretch; flex-direction: column; } button { width: 100%; } }
   </style>
@@ -112,10 +118,10 @@ export function renderInboxPage(config) {
       <h1>Project inbox</h1>
       <p class="intro">Drop in what you saw and leave a short message. It will be saved beside the project so your normal workflow can pick it up when you are ready.</p>
       <div class="meta"><span class="tag">project: ${projectName}</span><span class="tag">workflow: ${workflow}</span><span class="tag">writes: ${inboxDir}/</span></div>
-      <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+      <input id="file" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif">
       <div id="dropzone" role="button" tabindex="0" aria-label="Paste, drop, or choose a screenshot">
-        <div class="empty"><strong>Paste or drop a screenshot</strong><span>Ctrl+V works anywhere · click to choose a file · optional</span></div>
-        <img id="preview" alt="Screenshot preview">
+        <div class="empty"><strong>Paste or drop screenshots</strong><span>Up to four images · Ctrl+V works anywhere · click to choose files · optional</span></div>
+        <div id="previews" aria-label="Screenshot previews"></div>
       </div>
       <label for="message">&gt; message</label>
       <textarea id="message" maxlength="4000" placeholder="What happened? What did you expect instead?"></textarea>
@@ -123,41 +129,53 @@ export function renderInboxPage(config) {
         <button id="submit" type="button">save item ↵</button>
         <span id="status" role="status" aria-live="polite"></span>
       </div>
+      <section class="recent" aria-labelledby="recent-title">
+        <h2 id="recent-title">&gt; recent captures</h2>
+        <ul id="recent-list"><li>loading…</li></ul>
+      </section>
     </section>
   </main>
   <script>
     const dropzone = document.querySelector('#dropzone')
     const fileInput = document.querySelector('#file')
-    const preview = document.querySelector('#preview')
+    const previews = document.querySelector('#previews')
     const message = document.querySelector('#message')
     const submit = document.querySelector('#submit')
     const status = document.querySelector('#status')
-    let screenshot
-    let previewUrl
+    const screenshots = []
 
     function setStatus(text, type = '') { status.textContent = text; status.className = type }
-    function useFile(file) {
-      if (!file || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
-        setStatus('Choose a PNG, JPEG, WebP, or GIF image.', 'error'); return
+    function useFiles(files) {
+      for (const file of files) {
+        if (!file || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
+          setStatus('Choose PNG, JPEG, WebP, or GIF images.', 'error'); continue
+        }
+        if (screenshots.length >= 4) {
+          setStatus('Add no more than four screenshots.', 'error'); break
+        }
+        const url = URL.createObjectURL(file)
+        screenshots.push({ file, url })
+        const image = document.createElement('img')
+        image.src = url
+        image.alt = file.name || 'Clipboard screenshot'
+        previews.append(image)
       }
-      screenshot = file
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
-      previewUrl = URL.createObjectURL(file)
-      preview.src = previewUrl
-      dropzone.classList.add('has-image')
-      setStatus(file.name || 'Clipboard screenshot ready.')
+      dropzone.classList.toggle('has-image', screenshots.length > 0)
+      if (screenshots.length) setStatus(screenshots.length + (screenshots.length === 1 ? ' screenshot ready.' : ' screenshots ready.'))
     }
     dropzone.addEventListener('click', () => fileInput.click())
     dropzone.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click() }
     })
-    fileInput.addEventListener('change', () => useFile(fileInput.files[0]))
+    fileInput.addEventListener('change', () => { useFiles(fileInput.files); fileInput.value = '' })
     for (const name of ['dragenter', 'dragover']) dropzone.addEventListener(name, event => { event.preventDefault(); dropzone.classList.add('dragging') })
     for (const name of ['dragleave', 'drop']) dropzone.addEventListener(name, event => { event.preventDefault(); dropzone.classList.remove('dragging') })
-    dropzone.addEventListener('drop', event => useFile(event.dataTransfer.files[0]))
+    dropzone.addEventListener('drop', event => useFiles(event.dataTransfer.files))
     document.addEventListener('paste', event => {
-      const item = [...event.clipboardData.items].find(entry => entry.kind === 'file' && entry.type.startsWith('image/'))
-      if (item) useFile(item.getAsFile())
+      const files = [...event.clipboardData.items]
+        .filter(entry => entry.kind === 'file' && entry.type.startsWith('image/'))
+        .map(entry => entry.getAsFile())
+      if (files.length) useFiles(files)
     })
     function fileAsDataUrl(file) {
       if (!file) return Promise.resolve(undefined)
@@ -168,25 +186,51 @@ export function renderInboxPage(config) {
         reader.readAsDataURL(file)
       })
     }
+    async function loadRecent() {
+      const list = document.querySelector('#recent-list')
+      try {
+        const response = await fetch('/api/entries')
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error)
+        list.replaceChildren()
+        if (!result.entries.length) {
+          const item = document.createElement('li'); item.textContent = 'Inbox is empty.'; list.append(item); return
+        }
+        for (const entry of result.entries.slice(0, 8)) {
+          const item = document.createElement('li')
+          const id = document.createElement('span'); id.className = 'item-id'; id.textContent = entry.id
+          const state = document.createElement('span'); state.textContent = entry.status
+          item.append(id, state); list.append(item)
+        }
+      } catch { list.textContent = 'Unable to load recent captures.' }
+    }
     submit.addEventListener('click', async () => {
       if (!message.value.trim()) return setStatus('Add a short message first.', 'error')
       submit.disabled = true; setStatus('saving…')
       try {
         const response = await fetch('/api/entries', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: message.value, imageDataUrl: await fileAsDataUrl(screenshot), originalName: screenshot?.name }),
+          body: JSON.stringify({
+            message: message.value,
+            images: await Promise.all(screenshots.map(async ({ file }) => ({
+              dataUrl: await fileAsDataUrl(file), originalName: file.name,
+            }))),
+          }),
         })
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || 'Unable to save item.')
         setStatus('saved ' + result.id, 'success')
         message.value = ''
-        screenshot = undefined
+        for (const screenshot of screenshots) URL.revokeObjectURL(screenshot.url)
+        screenshots.length = 0
         dropzone.classList.remove('has-image')
-        preview.removeAttribute('src')
+        previews.replaceChildren()
         fileInput.value = ''
+        await loadRecent()
       } catch (error) { setStatus(error.message || 'Unable to save item.', 'error') }
       finally { submit.disabled = false }
     })
+    loadRecent()
   </script>
 </body>
 </html>`

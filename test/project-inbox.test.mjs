@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
+import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, test } from 'node:test'
 import { loadConfig, normalizeConfig } from '../src/config.mjs'
-import { isLoopbackAddress, startInboxServer } from '../src/server.mjs'
+import { DEFAULT_PORT, isLoopbackAddress, startInboxServer } from '../src/server.mjs'
 import { listInboxEntries, saveInboxEntry } from '../src/storage.mjs'
 
 const temporaryDirectories = []
@@ -34,6 +35,27 @@ test('configuration keeps the inbox inside the project root', async () => {
   assert.equal(config.workflow.label, 'Ticket register')
 })
 
+test('the SPEC-driven profile is optional and validates portable workflow locations', async () => {
+  const root = await temporaryProject()
+  assert.equal(normalizeConfig(root).workflow.profile, 'generic')
+  const config = normalizeConfig(root, { workflow: {
+    profile: 'spec-driven',
+    ticketPrefixes: ['fr', 'BUG'],
+    repositoryInstructions: ['AGENTS.md'],
+    specifications: ['docs/specifications'],
+    ticketRegister: 'docs/tickets.md',
+    changelog: 'CHANGELOG.md',
+    focusedTestCommand: 'npm test',
+  } })
+  assert.equal(config.workflow.profile, 'spec-driven')
+  assert.deepEqual(config.workflow.ticketPrefixes, ['FR', 'BUG'])
+  assert.match(config.workflow.instructions, /Register a stable ticket/)
+  assert.throws(
+    () => normalizeConfig(root, { workflow: { profile: 'spec-driven', ticketRegister: '../other.md' } }),
+    /inside the project root/,
+  )
+})
+
 test('a message and screenshot become one workflow item', async () => {
   const root = await temporaryProject()
   const config = normalizeConfig(root, { workflow: { label: 'Ticket register' } })
@@ -47,6 +69,7 @@ test('a message and screenshot become one workflow item', async () => {
     id: 'INBOX-20260809-101112-a1b2c3',
     notePath: 'inbox/INBOX-20260809-101112-a1b2c3.md',
     imagePath: 'inbox/INBOX-20260809-101112-a1b2c3.png',
+    imagePaths: ['inbox/INBOX-20260809-101112-a1b2c3.png'],
   })
   const note = await readFile(join(root, result.notePath), 'utf8')
   assert.match(note, /status: new/)
@@ -66,9 +89,54 @@ test('message-only items work and malformed images are rejected', async () => {
   const config = normalizeConfig(root)
   const result = await saveInboxEntry(config, { message: 'Remember this edge case.' }, new Date(), 'note')
   assert.equal(result.imagePath, null)
+  assert.deepEqual(result.imagePaths, [])
   await assert.rejects(
     saveInboxEntry(config, { message: 'Not really PNG', imageDataUrl: 'data:image/png;base64,SGVsbG8=' }),
     /do not match/,
+  )
+})
+
+test('one inbox item can preserve multiple screenshots', async () => {
+  const root = await temporaryProject()
+  const config = normalizeConfig(root)
+  const result = await saveInboxEntry(config, {
+    message: 'Compare these two states.',
+    images: [
+      { dataUrl: ONE_PIXEL_PNG, originalName: 'before.png' },
+      { dataUrl: ONE_PIXEL_PNG, originalName: 'after.png' },
+    ],
+  }, new Date('2026-08-09T10:11:12.000Z'), 'pair')
+  assert.deepEqual(result.imagePaths, [
+    'inbox/INBOX-20260809-101112-pair.png',
+    'inbox/INBOX-20260809-101112-pair-2.png',
+  ])
+  const note = await readFile(join(root, result.notePath), 'utf8')
+  assert.match(note, /attachment: "INBOX-20260809-101112-pair.png"/)
+  assert.match(note, /attachments: \["INBOX-20260809-101112-pair.png","INBOX-20260809-101112-pair-2.png"\]/)
+  await assert.rejects(saveInboxEntry(config, {
+    message: 'Too many.', images: Array.from({ length: 5 }, () => ({ dataUrl: ONE_PIXEL_PNG })),
+  }), /no more than 4/)
+})
+
+test('a duplicate ID never removes an existing attachment', async () => {
+  const root = await temporaryProject()
+  const config = normalizeConfig(root)
+  const now = new Date('2026-08-09T10:11:12.000Z')
+  const first = await saveInboxEntry(config, { message: 'First.', imageDataUrl: ONE_PIXEL_PNG }, now, 'same')
+  await assert.rejects(
+    saveInboxEntry(config, { message: 'Second.', imageDataUrl: ONE_PIXEL_PNG }, now, 'same'),
+    error => error.code === 'EEXIST',
+  )
+  assert.ok((await readFile(join(root, first.imagePath))).length > 0)
+})
+
+test('the inbox rejects symbolic links that escape the project root', async () => {
+  const root = await temporaryProject()
+  const outside = await temporaryProject()
+  await symlink(outside, join(root, 'inbox'))
+  await assert.rejects(
+    saveInboxEntry(normalizeConfig(root), { message: 'Do not write outside.' }),
+    /symbolic links/,
   )
 })
 
@@ -91,7 +159,42 @@ test('the HTTP server is loopback-only and accepts an entry', async () => {
     })
     assert.equal(response.status, 201)
     assert.match((await response.json()).id, /^INBOX-/)
+    const listing = await fetch(`${origin}/api/entries`)
+    assert.equal(listing.status, 200)
+    assert.equal((await listing.json()).entries.length, 1)
   } finally {
     await new Promise(resolve => server.close(resolve))
+  }
+})
+
+test('the default port falls back but an explicit occupied port fails', async () => {
+  const root = await temporaryProject()
+  const blocker = createServer()
+  let ownsDefaultPort = false
+  try {
+    await new Promise((resolve, reject) => {
+      blocker.once('error', error => error.code === 'EADDRINUSE' ? resolve() : reject(error))
+      blocker.listen(DEFAULT_PORT, '127.0.0.1', () => { ownsDefaultPort = true; resolve() })
+    })
+    const { server, address } = await startInboxServer({ projectRoot: root, fallbackOnInUse: true })
+    try {
+      assert.notEqual(address.port, DEFAULT_PORT)
+    } finally {
+      await new Promise(resolve => server.close(resolve))
+    }
+  } finally {
+    if (ownsDefaultPort) await new Promise(resolve => blocker.close(resolve))
+  }
+
+  const exactBlocker = createServer()
+  await new Promise(resolve => exactBlocker.listen(0, '127.0.0.1', resolve))
+  const occupiedPort = exactBlocker.address().port
+  try {
+    await assert.rejects(
+      startInboxServer({ projectRoot: root, port: occupiedPort, fallbackOnInUse: false }),
+      error => error.code === 'EADDRINUSE',
+    )
+  } finally {
+    await new Promise(resolve => exactBlocker.close(resolve))
   }
 })

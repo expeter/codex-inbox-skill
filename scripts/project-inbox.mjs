@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from 'node:path'
 import { loadConfig } from '../src/config.mjs'
-import { startInboxServer } from '../src/server.mjs'
+import { DEFAULT_PORT, startInboxServer } from '../src/server.mjs'
 import { listInboxEntries } from '../src/storage.mjs'
 
 function usage() {
@@ -17,11 +17,11 @@ The server listens only on 127.0.0.1 and never starts an agent watcher.`
 function parseArgs(argv) {
   const args = [...argv]
   const command = args[0] && !args[0].startsWith('-') ? args.shift() : 'serve'
-  const options = { command, root: process.cwd(), port: 4783, json: false }
+  const options = { command, root: process.cwd(), port: DEFAULT_PORT, portExplicit: false, json: false }
   while (args.length) {
     const flag = args.shift()
     if (flag === '--root') options.root = args.shift()
-    else if (flag === '--port') options.port = Number(args.shift())
+    else if (flag === '--port') { options.port = Number(args.shift()); options.portExplicit = true }
     else if (flag === '--json') options.json = true
     else if (flag === '--help' || flag === '-h') options.help = true
     else throw new Error(`Unknown option: ${flag}`)
@@ -50,6 +50,7 @@ async function main() {
   const { server, config, address } = await startInboxServer({
     projectRoot: options.root,
     port: options.port,
+    fallbackOnInUse: !options.portExplicit,
   })
   const actualPort = typeof address === 'object' && address ? address.port : options.port
   console.log(`Project Inbox · ${config.projectName}`)

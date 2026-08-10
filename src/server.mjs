@@ -1,9 +1,13 @@
+import { randomInt } from 'node:crypto'
 import { createServer } from 'node:http'
 import { loadConfig } from './config.mjs'
 import { renderInboxPage } from './page.mjs'
-import { MAX_REQUEST_BYTES, saveInboxEntry } from './storage.mjs'
+import { listInboxEntries, MAX_REQUEST_BYTES, saveInboxEntry } from './storage.mjs'
 
 export const LOOPBACK_HOST = '127.0.0.1'
+export const DEFAULT_PORT = 4783
+export const FALLBACK_PORT_START = 4784
+export const FALLBACK_PORT_END = 4883
 
 export function isLoopbackAddress(address) {
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
@@ -38,7 +42,7 @@ async function readJsonBody(request) {
   for await (const chunk of request) {
     const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
     size += bytes.length
-    if (size > MAX_REQUEST_BYTES) throw new Error('The submission is too large (16 MB maximum).')
+    if (size > MAX_REQUEST_BYTES) throw new Error('The submission is too large (44 MB maximum).')
     chunks.push(bytes)
   }
   try {
@@ -66,6 +70,14 @@ export async function createInboxServer({ projectRoot }) {
       respondJson(response, 200, { ok: true, project: config.projectName, workflow: config.workflow.label })
       return
     }
+    if (pathname === '/api/entries' && request.method === 'GET') {
+      try {
+        respondJson(response, 200, { entries: (await listInboxEntries(config)).slice(0, 20) })
+      } catch (error) {
+        respondJson(response, 500, { error: error instanceof Error ? error.message : 'Unable to list inbox items.' })
+      }
+      return
+    }
     if (pathname === '/api/entries' && request.method === 'POST') {
       try {
         respondJson(response, 201, await saveInboxEntry(config, await readJsonBody(request)))
@@ -75,7 +87,7 @@ export async function createInboxServer({ projectRoot }) {
       return
     }
     if (pathname === '/api/entries' || pathname === '/api/health' || pathname === '/' || pathname.startsWith('/inbox')) {
-      response.setHeader('Allow', pathname === '/api/entries' ? 'POST' : 'GET')
+      response.setHeader('Allow', pathname === '/api/entries' ? 'GET, POST' : 'GET')
       respond(response, 405, 'Method not allowed.')
       return
     }
@@ -84,11 +96,46 @@ export async function createInboxServer({ projectRoot }) {
   return { server, config }
 }
 
-export async function startInboxServer({ projectRoot, port = 4783 }) {
-  const { server, config } = await createInboxServer({ projectRoot })
-  await new Promise((resolve, reject) => {
-    server.once('error', reject)
-    server.listen(port, LOOPBACK_HOST, resolve)
+function shuffledFallbackPorts() {
+  const ports = Array.from(
+    { length: FALLBACK_PORT_END - FALLBACK_PORT_START + 1 },
+    (_, index) => FALLBACK_PORT_START + index,
+  )
+  for (let index = ports.length - 1; index > 0; index -= 1) {
+    const swap = randomInt(index + 1)
+    ;[ports[index], ports[swap]] = [ports[swap], ports[index]]
+  }
+  return ports
+}
+
+function listen(server, port) {
+  return new Promise((resolve, reject) => {
+    const onError = error => { server.off('listening', onListening); reject(error) }
+    const onListening = () => { server.off('error', onError); resolve() }
+    server.once('error', onError)
+    server.once('listening', onListening)
+    server.listen(port, LOOPBACK_HOST)
   })
+}
+
+export async function startInboxServer({ projectRoot, port = DEFAULT_PORT, fallbackOnInUse = false }) {
+  const { server, config } = await createInboxServer({ projectRoot })
+  try {
+    await listen(server, port)
+  } catch (error) {
+    if (!fallbackOnInUse || port !== DEFAULT_PORT || error?.code !== 'EADDRINUSE') throw error
+    let lastError = error
+    for (const fallbackPort of shuffledFallbackPorts()) {
+      try {
+        await listen(server, fallbackPort)
+        lastError = null
+        break
+      } catch (fallbackError) {
+        lastError = fallbackError
+        if (fallbackError?.code !== 'EADDRINUSE') throw fallbackError
+      }
+    }
+    if (lastError) throw lastError
+  }
   return { server, config, address: server.address() }
 }

@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto'
-import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
-import { relative, resolve } from 'node:path'
+import { lstat, mkdir, readFile, readdir, realpath, unlink, writeFile } from 'node:fs/promises'
+import { relative, resolve, sep } from 'node:path'
 
-export const MAX_REQUEST_BYTES = 22 * 1024 * 1024
+export const MAX_REQUEST_BYTES = 44 * 1024 * 1024
 export const MAX_IMAGE_BYTES = 16 * 1024 * 1024
+export const MAX_TOTAL_IMAGE_BYTES = 32 * 1024 * 1024
+export const MAX_IMAGES = 4
 export const MAX_MESSAGE_LENGTH = 4_000
 
 const IMAGE_TYPES = new Map([
@@ -38,6 +40,60 @@ function cleanOriginalName(name) {
   return name.replace(/[\r\n]/g, ' ').slice(0, 180)
 }
 
+function decodeImages(payload) {
+  let candidates
+  if (payload.images === undefined) {
+    candidates = payload.imageDataUrl ? [{ dataUrl: payload.imageDataUrl, originalName: payload.originalName }] : []
+  } else {
+    if (!Array.isArray(payload.images)) throw new Error('images must be an array.')
+    candidates = payload.images
+  }
+  if (candidates.length > MAX_IMAGES) throw new Error(`Add no more than ${MAX_IMAGES} screenshots.`)
+
+  let totalBytes = 0
+  return candidates.map((candidate, index) => {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      throw new Error(`Screenshot ${index + 1} must be an object.`)
+    }
+    const image = decodeImage(candidate.dataUrl)
+    if (!image) throw new Error(`Screenshot ${index + 1} is empty.`)
+    totalBytes += image.bytes.length
+    if (totalBytes > MAX_TOTAL_IMAGE_BYTES) throw new Error('Screenshots are too large (32 MB combined maximum).')
+    return { ...image, originalName: cleanOriginalName(candidate.originalName) }
+  })
+}
+
+function staysInside(root, candidate) {
+  const path = relative(root, candidate)
+  return path === '' || (!path.startsWith('..') && !path.startsWith(sep))
+}
+
+async function safeInboxPath(config, { create }) {
+  const root = await realpath(config.projectRoot)
+  let current = root
+  const segments = config.inboxDir.split(/[\\/]+/).filter(segment => segment && segment !== '.')
+
+  for (const segment of segments) {
+    const next = resolve(current, segment)
+    let stats
+    try {
+      stats = await lstat(next)
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error
+      if (!create) return null
+      await mkdir(next)
+      stats = await lstat(next)
+    }
+    if (stats.isSymbolicLink()) throw new Error('inboxDir must not contain symbolic links.')
+    if (!stats.isDirectory()) throw new Error('inboxDir must refer to a directory.')
+    current = next
+  }
+
+  const resolved = await realpath(current)
+  if (!staysInside(root, resolved)) throw new Error('inboxDir must stay inside the project root.')
+  return resolved
+}
+
 function yamlString(value) {
   return JSON.stringify(value)
 }
@@ -52,14 +108,18 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     throw new Error(`Keep the message under ${MAX_MESSAGE_LENGTH} characters.`)
   }
 
-  const image = decodeImage(payload.imageDataUrl)
+  const images = decodeImages(payload)
   const safeToken = String(token).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'entry'
   const id = `INBOX-${compactTimestamp(now)}-${safeToken}`
-  const imageName = image ? `${id}.${image.extension}` : null
+  const imageNames = images.map((image, index) => `${id}${index ? `-${index + 1}` : ''}.${image.extension}`)
+  const imageName = imageNames[0] ?? null
   const noteName = `${id}.md`
-  const notePath = resolve(config.inboxPath, noteName)
-  const imagePath = imageName ? resolve(config.inboxPath, imageName) : null
-  const originalName = cleanOriginalName(payload.originalName)
+  const inboxPath = await safeInboxPath(config, { create: true })
+  const notePath = resolve(inboxPath, noteName)
+  const imagePaths = imageNames.map(name => resolve(inboxPath, name))
+  const imagePath = imagePaths[0] ?? null
+  const originalNames = images.map(image => image.originalName).filter(Boolean)
+  const originalName = originalNames[0]
   const noteDocument = [
     '---',
     'project_inbox: 1',
@@ -68,8 +128,11 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     `created: ${yamlString(now.toISOString())}`,
     `project: ${yamlString(config.projectName)}`,
     `workflow: ${yamlString(config.workflow.label)}`,
+    `workflow_profile: ${yamlString(config.workflow.profile)}`,
     ...(imageName ? [`attachment: ${yamlString(imageName)}`] : []),
+    ...(imageNames.length ? [`attachments: ${yamlString(imageNames)}`] : []),
     ...(originalName ? [`original_name: ${yamlString(originalName)}`] : []),
+    ...(originalNames.length ? [`original_names: ${yamlString(originalNames)}`] : []),
     '---',
     '',
     `# ${id}`,
@@ -84,12 +147,15 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     '',
   ].join('\n')
 
-  await mkdir(config.inboxPath, { recursive: true })
+  const createdImagePaths = []
   try {
-    if (image && imagePath) await writeFile(imagePath, image.bytes, { flag: 'wx' })
+    for (const [index, image] of images.entries()) {
+      await writeFile(imagePaths[index], image.bytes, { flag: 'wx' })
+      createdImagePaths.push(imagePaths[index])
+    }
     await writeFile(notePath, noteDocument, { flag: 'wx' })
   } catch (error) {
-    if (imagePath) await unlink(imagePath).catch(() => {})
+    await Promise.all(createdImagePaths.map(path => unlink(path).catch(() => {})))
     throw error
   }
 
@@ -97,6 +163,7 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     id,
     notePath: relative(config.projectRoot, notePath),
     imagePath: imagePath ? relative(config.projectRoot, imagePath) : null,
+    imagePaths: imagePaths.map(path => relative(config.projectRoot, path)),
   }
 }
 
@@ -107,9 +174,11 @@ function frontmatterValue(document, key) {
 }
 
 export async function listInboxEntries(config) {
+  const inboxPath = await safeInboxPath(config, { create: false })
+  if (!inboxPath) return []
   let names
   try {
-    names = await readdir(config.inboxPath)
+    names = await readdir(inboxPath)
   } catch (error) {
     if (error?.code === 'ENOENT') return []
     throw error
@@ -117,13 +186,13 @@ export async function listInboxEntries(config) {
 
   const noteNames = names.filter(name => /^INBOX-.*\.md$/.test(name)).sort().reverse()
   return Promise.all(noteNames.map(async name => {
-    const document = await readFile(resolve(config.inboxPath, name), 'utf8')
+    const document = await readFile(resolve(inboxPath, name), 'utf8')
     return {
       id: frontmatterValue(document, 'id') ?? name.slice(0, -3),
       status: frontmatterValue(document, 'status') ?? 'legacy',
       created: frontmatterValue(document, 'created') ?? null,
       workflow: frontmatterValue(document, 'workflow') ?? null,
-      path: relative(config.projectRoot, resolve(config.inboxPath, name)),
+      path: relative(config.projectRoot, resolve(inboxPath, name)),
     }
   }))
 }

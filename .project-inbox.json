@@ -1,0 +1,14 @@
+{
+  "projectName": "Project Inbox",
+  "workflow": {
+    "profile": "spec-driven",
+    "label": "SPEC-001 repository workflow",
+    "instructions": "Map each new capture to a stable ticket in docs/tickets.md before implementation.",
+    "ticketPrefixes": ["FR", "CR", "BUG", "SPEC"],
+    "repositoryInstructions": ["AGENTS.md"],
+    "specifications": ["docs/specifications/"],
+    "ticketRegister": "docs/tickets.md",
+    "changelog": "CHANGELOG.md",
+    "focusedTestCommand": "npm test"
+  }
+}
