@@ -1,0 +1,25 @@
+{
+  "name": "project-inbox",
+  "version": "0.1.0",
+  "description": "A localhost screenshot-and-note inbox for Codex projects",
+  "type": "module",
+  "bin": {
+    "project-inbox": "./scripts/project-inbox.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "agents",
+    "references",
+    "scripts",
+    "src",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./scripts/project-inbox.mjs serve",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Inbox"
+  short_description: "Capture screenshots and notes into project work"
+  default_prompt: "Use $project-inbox to start or triage this project’s local inbox."
