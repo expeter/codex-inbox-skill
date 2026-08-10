@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, test } from 'node:test'
+import { Script } from 'node:vm'
 import { loadConfig, normalizeConfig } from '../src/config.mjs'
+import { renderInboxPage } from '../src/page.mjs'
 import { DEFAULT_PORT, isLoopbackAddress, startInboxServer } from '../src/server.mjs'
 import { listInboxEntries, saveInboxEntry } from '../src/storage.mjs'
 
@@ -54,6 +56,26 @@ test('the SPEC-driven profile is optional and validates portable workflow locati
     () => normalizeConfig(root, { workflow: { profile: 'spec-driven', ticketRegister: '../other.md' } }),
     /inside the project root/,
   )
+})
+
+test('the capture page keeps its small controls contextual', async () => {
+  const root = await temporaryProject()
+  const genericPage = renderInboxPage(normalizeConfig(root, { projectName: 'Paper trail' }))
+  assert.match(genericPage, /<h1>Paper trail<\/h1>/)
+  assert.match(genericPage, /path: \/tmp\/project-inbox-/)
+  assert.match(genericPage, /remove-image/)
+  assert.match(genericPage, /overflow-x: auto/)
+  assert.match(genericPage, /project-inbox-theme/)
+  assert.doesNotMatch(genericPage, /ticket states/)
+  for (const script of [...genericPage.matchAll(/<script>([\s\S]*?)<\/script>/g)]) {
+    assert.doesNotThrow(() => new Script(script[1]))
+  }
+
+  const specPage = renderInboxPage(normalizeConfig(root, { workflow: {
+    profile: 'spec-driven', ticketRegister: 'docs/tickets.md',
+  } }))
+  assert.match(specPage, /href="\/workflow\/tickets"/)
+  assert.match(specPage, /ticket states ↗/)
 })
 
 test('a message and screenshot become one workflow item', async () => {
@@ -164,6 +186,37 @@ test('the HTTP server is loopback-only and accepts an entry', async () => {
     assert.equal((await listing.json()).entries.length, 1)
   } finally {
     await new Promise(resolve => server.close(resolve))
+  }
+})
+
+test('a SPEC-driven inbox exposes only its configured in-project ticket register', async () => {
+  const root = await temporaryProject()
+  await mkdir(join(root, 'docs'))
+  await writeFile(join(root, 'docs', 'tickets.md'), '# Ticket states\n\n- FR-003: open\n')
+  await writeFile(join(root, '.project-inbox.json'), JSON.stringify({
+    workflow: { profile: 'spec-driven', ticketRegister: 'docs/tickets.md' },
+  }))
+  const { server, address } = await startInboxServer({ projectRoot: root, port: 0 })
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/workflow/tickets`)
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('content-type'), 'text/markdown; charset=utf-8')
+    assert.match(await response.text(), /FR-003: open/)
+  } finally {
+    await new Promise(resolve => server.close(resolve))
+  }
+
+  const outside = await temporaryProject()
+  await writeFile(join(outside, 'tickets.md'), 'private')
+  await rm(join(root, 'docs'), { recursive: true })
+  await symlink(outside, join(root, 'docs'))
+  const blocked = await startInboxServer({ projectRoot: root, port: 0 })
+  try {
+    const response = await fetch(`http://127.0.0.1:${blocked.address.port}/workflow/tickets`)
+    assert.equal(response.status, 404)
+    assert.match(await response.text(), /inside the project root/)
+  } finally {
+    await new Promise(resolve => blocked.server.close(resolve))
   }
 })
 

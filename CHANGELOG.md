@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added removable screenshot previews in a horizontally scrolling strip while retaining the four-image limit.
+- Added a persistent light or dark appearance toggle stored in the browser.
+- Added a read-only link to the configured ticket register for SPEC-driven projects.
+- Distinguished the configured project name from its shortened filesystem and inbox paths in the capture page.
 - Added support for up to four screenshots in one inbox capture while retaining the original single-attachment fields.
 - Added a compact, read-only recent-captures list to the browser page.
 - Added automatic fallback within ports 4784–4883 when the default port 4783 is occupied. Explicit ports remain exact.

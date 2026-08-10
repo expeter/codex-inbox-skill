@@ -1,5 +1,7 @@
 import { randomInt } from 'node:crypto'
+import { readFile, realpath } from 'node:fs/promises'
 import { createServer } from 'node:http'
+import { relative, resolve, sep } from 'node:path'
 import { loadConfig } from './config.mjs'
 import { renderInboxPage } from './page.mjs'
 import { listInboxEntries, MAX_REQUEST_BYTES, saveInboxEntry } from './storage.mjs'
@@ -31,6 +33,16 @@ function respond(response, status, body, contentType = 'text/plain; charset=utf-
 
 function respondJson(response, status, body) {
   respond(response, status, JSON.stringify(body), 'application/json; charset=utf-8')
+}
+
+async function readConfiguredProjectFile(projectRoot, configuredPath) {
+  const root = await realpath(projectRoot)
+  const file = await realpath(resolve(root, configuredPath))
+  const path = relative(root, file)
+  if (path.startsWith('..') || path.startsWith(sep)) {
+    throw new Error('Configured ticket register must stay inside the project root.')
+  }
+  return readFile(file, 'utf8')
 }
 
 async function readJsonBody(request) {
@@ -78,6 +90,23 @@ export async function createInboxServer({ projectRoot }) {
       }
       return
     }
+    if (pathname === '/workflow/tickets' && request.method === 'GET') {
+      if (config.workflow.profile !== 'spec-driven' || !config.workflow.ticketRegister) {
+        respond(response, 404, 'No ticket register is configured.')
+        return
+      }
+      try {
+        respond(
+          response,
+          200,
+          await readConfiguredProjectFile(config.projectRoot, config.workflow.ticketRegister),
+          'text/markdown; charset=utf-8',
+        )
+      } catch (error) {
+        respond(response, 404, error instanceof Error ? error.message : 'Unable to read the ticket register.')
+      }
+      return
+    }
     if (pathname === '/api/entries' && request.method === 'POST') {
       try {
         respondJson(response, 201, await saveInboxEntry(config, await readJsonBody(request)))
@@ -86,7 +115,7 @@ export async function createInboxServer({ projectRoot }) {
       }
       return
     }
-    if (pathname === '/api/entries' || pathname === '/api/health' || pathname === '/' || pathname.startsWith('/inbox')) {
+    if (pathname === '/api/entries' || pathname === '/api/health' || pathname === '/workflow/tickets' || pathname === '/' || pathname.startsWith('/inbox')) {
       response.setHeader('Allow', pathname === '/api/entries' ? 'GET, POST' : 'GET')
       respond(response, 405, 'Method not allowed.')
       return
