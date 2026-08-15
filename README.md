@@ -46,8 +46,15 @@ Use $skill-installer to install project-inbox from:
 https://github.com/expeter/codex-inbox-skill
 ```
 
-This creates a user-scoped snapshot. Repeat the request when you want to install
-a newer revision.
+This creates a user-scoped snapshot. In the next turn, start it with:
+
+```text
+Use $project-inbox to start this project's local inbox.
+```
+
+Codex normally detects newly installed skills automatically. If
+`$project-inbox` is not available, restart Codex and repeat that request. Repeat
+the installation request when you want to install a newer revision.
 
 ### Install globally
 

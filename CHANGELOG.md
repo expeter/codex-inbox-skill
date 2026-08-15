@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Clarified that a newly installed skill is used in a following turn, with a Codex restart only when automatic discovery does not expose it.
 - Reduced the Codex installer prompt to the skill source, avoiding consumer-side repository verification.
 - Streamlined skill setup into copyable Codex-assisted, global, workspace-local, and direct-server paths with top-level links.
 - Included the README workflow image in the published package contents.
