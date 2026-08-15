@@ -4,7 +4,7 @@ A tiny localhost inbox for sending visual feedback to Codex without turning your
 
 Paste, drop, or select up to four screenshots, add a short note, and Project Inbox saves the capture as durable Markdown beside your code. Codex can list or triage those captures later when you explicitly ask.
 
-[Install with Codex](#install-with-codex) · [Install globally](#install-globally)
+[Install with Codex](#install-with-codex) · [Install globally](#install-globally) · [Install in one workspace](#install-in-one-workspace) · [Run the server directly](#run-the-server-directly)
 
 ## What it does
 
@@ -35,35 +35,7 @@ turning the inbox into a second task-management system.
 
 There are no runtime dependencies and no `npm install` step.
 
-## Try it from a clone
-
-Clone this repository using its GitHub URL, then point the inbox at a project:
-
-```bash
-git clone https://github.com/expeter/codex-inbox-skill.git
-cd codex-inbox-skill
-npm test
-npm run start -- --root /absolute/path/to/your/project --port 0
-```
-
-The command prints a URL such as `http://127.0.0.1:42137/inbox`. Open it in your browser, add a message and optional screenshots, then save.
-
-`--port 0` asks the operating system for an available port. Without `--port`, Project Inbox prefers `4783` and falls back within `4784–4883` if needed. An explicitly requested port remains exact:
-
-```bash
-npm run start -- --root /absolute/path/to/your/project --port 4777
-```
-
-Arguments for an npm script must come after npm's `--` separator.
-
-## Install it as a Codex skill
-
-Codex loads user-scoped skills from `~/.agents/skills` and repository-scoped
-skills from `.agents/skills` between the working directory and repository root.
-It follows symlinked skill directories. Use `/skills` in Codex to confirm which
-copy and path are active; same-named copies are not merged.
-
-Choose the installation style that matches how you want to maintain the skill.
+## Install as a Codex skill
 
 ### Install with Codex
 
@@ -77,17 +49,12 @@ Report the installed path and revision, then run its focused tests.
 Do not overwrite an existing installation without preserving it first.
 ```
 
-The installer downloads the selected GitHub revision into a local skill
-directory. That copy is a snapshot: merely retaining the GitHub URL does not
-make Codex poll for or install future updates. Re-run an explicit installation
-when you want a newer snapshot. The installer refuses to overwrite an existing
-destination, so inspect or move the old copy outside every scanned skill
-directory before reinstalling.
+This creates a user-scoped snapshot. Repeat the request when you want to install
+a newer revision.
 
 ### Install globally
 
-Install a user-scoped Git checkout when the skill should be available to Codex
-across projects:
+Use a user-scoped checkout to make the skill available across projects:
 
 ```bash
 mkdir -p ~/.agents/skills
@@ -101,49 +68,38 @@ Update that checkout whenever you want the latest version:
 git -C ~/.agents/skills/project-inbox pull --ff-only
 ```
 
-### Use a development checkout directly
+### Install in one workspace
 
-If you already cloned this repository elsewhere, a symlink avoids maintaining
-a second copy:
-
-```bash
-mkdir -p ~/.agents/skills
-ln -s /absolute/path/to/codex-inbox-skill \
-  ~/.agents/skills/project-inbox
-```
-
-Git updates in the source checkout then become the skill contents Codex reads.
-Codex detects local skill changes automatically; restart Codex if the revised
-skill does not appear.
-
-### Migrate an older or duplicate installation
-
-Before installing, use `/skills` to inspect every `project-inbox` entry. Move a
-legacy copy outside its scanned parent rather than renaming it in place:
+Use a repository-scoped checkout when only one workspace should discover the
+skill. Run this from that workspace's root:
 
 ```bash
-mkdir -p ~/.local/share/project-inbox-skill-backups
-mv ~/.codex/skills/project-inbox \
-  ~/.local/share/project-inbox-skill-backups/project-inbox.legacy
+mkdir -p .agents/skills
+git clone https://github.com/expeter/codex-inbox-skill.git \
+  .agents/skills/project-inbox
 ```
 
-Then install one active copy under `~/.agents/skills/project-inbox` and restart
-Codex. Keeping only one active skill avoids ambiguous `$project-inbox`
-selection. See the [official Codex skill documentation](https://learn.chatgpt.com/docs/build-skills)
-for discovery locations, symlink support, invocation, and disabling a skill
-without deleting it.
+Update it in place:
 
-### Invoke the installed skill
+```bash
+git -C .agents/skills/project-inbox pull --ff-only
+```
 
-From the project that should receive captures, ask Codex:
+## Run the server directly
 
-> Use `$project-inbox` to start this project's local inbox.
+To use the capture server without installing the Codex skill, clone the
+repository and point it at a project. There are no runtime dependencies to
+install.
 
-Codex starts the server and reports the localhost URL. Later, processing remains explicit:
+```bash
+git clone https://github.com/expeter/codex-inbox-skill.git
+cd codex-inbox-skill
+npm run start -- --root /absolute/path/to/your/project --port 0
+```
 
-> Use `$project-inbox` to list the new captures.
-
-> Use `$project-inbox` to triage the new captures into this repository's existing ticket workflow.
+The command prints a localhost URL to open in your browser. `--port 0` selects
+an available port; omit it to prefer `4783`, or provide an exact port. npm
+arguments must follow the `--` separator.
 
 ## Saved captures
 

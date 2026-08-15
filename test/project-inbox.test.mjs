@@ -43,9 +43,16 @@ test('README exposes copyable installation shortcuts', async () => {
 
   assert.match(readme, /\[Install with Codex\]\(#install-with-codex\)/)
   assert.match(readme, /\[Install globally\]\(#install-globally\)/)
+  assert.match(readme, /\[Install in one workspace\]\(#install-in-one-workspace\)/)
+  assert.match(readme, /\[Run the server directly\]\(#run-the-server-directly\)/)
   assert.match(readme, /### Install with Codex/)
   assert.match(readme, /### Install globally/)
+  assert.match(readme, /### Install in one workspace/)
+  assert.match(readme, /## Run the server directly/)
   assert.match(readme, /```text\nUse \$skill-installer to install the project-inbox skill from:\nhttps:\/\/github\.com\/expeter\/codex-inbox-skill/)
+  assert.doesNotMatch(readme, /Use a development checkout directly/)
+  assert.doesNotMatch(readme, /Migrate an older or duplicate installation/)
+  assert.doesNotMatch(readme, /Invoke the installed skill/)
 })
 
 test('configuration keeps the inbox inside the project root', async () => {
