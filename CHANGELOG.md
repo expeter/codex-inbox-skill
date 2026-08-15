@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Included the README workflow image in the published package contents.
 - Expanded Codex skill installation guidance with snapshot, updateable Git checkout, development symlink, release pinning, authentication troubleshooting, migration, verification, and explicit update workflows.
 - Added a capture-page screenshot to the README as a visual example of the Project Inbox workflow.
 - Corrected the MIT license publisher attribution to expeter.

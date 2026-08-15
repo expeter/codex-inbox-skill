@@ -23,6 +23,21 @@ afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
 })
 
+test('published package contents include local README images', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8')
+  const imagePaths = [...readme.matchAll(/!\[[^\]]*\]\((docs\/images\/[^)]+)\)/g)].map(match => match[1])
+
+  assert.ok(imagePaths.length > 0)
+  for (const imagePath of imagePaths) {
+    assert.ok(
+      manifest.files.some(entry => imagePath === entry || imagePath.startsWith(`${entry.replace(/\/$/, '')}/`)),
+      `${imagePath} must be included in package.json files`,
+    )
+    assert.ok((await readFile(new URL(`../${imagePath}`, import.meta.url))).length > 0)
+  }
+})
+
 test('configuration keeps the inbox inside the project root', async () => {
   const root = await temporaryProject()
   assert.throws(() => normalizeConfig(root, { inboxDir: '../elsewhere' }), /inside the project root/)

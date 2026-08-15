@@ -2,7 +2,7 @@
 
 ## Open
 
-None.
+- `FR-006` — Stabilize Project Inbox as a skill for the `1.0.1` release. Include README image assets in the package contents and define explicit per-project guidance for choosing whether raw inbox captures are ignored or committed. Package consistency can proceed independently; the capture-tracking policy remains a product decision.
 
 ## Resolved
 
