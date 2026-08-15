@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Expanded Codex skill installation guidance with snapshot, updateable Git checkout, development symlink, release pinning, authentication troubleshooting, migration, verification, and explicit update workflows.
+- Corrected the MIT license publisher attribution to expeter.
+
 ## 1.0.0 - 2026-08-10
 
 - Removed repository-specific references to a local development helper from the published project instructions.
