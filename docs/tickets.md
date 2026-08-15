@@ -22,3 +22,4 @@ None.
 - `CR-006` — Removed repository-facing references to the local dependency helper and prepared the stable `1.0.0` release. Verified with the focused test suite, CLI smoke check, skill validation, and repository-wide reference scan.
 - `CR-007` — Expanded README guidance for Codex-assisted snapshots, updateable Git checkouts, development symlinks, release pinning, authentication recovery, duplicate migration, invocation, and explicit updates. Verified with the focused test suite, skill validation, and documentation diff checks.
 - `CR-008` — Corrected the MIT license publisher attribution to expeter. Verified with the focused test suite and documentation diff checks.
+- `CR-009` — Added the submitted Project Inbox capture-page screenshot to the README as a visual workflow example. Verified with byte-identical image comparison, README asset checks, the focused test suite, and skill validation.

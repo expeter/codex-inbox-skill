@@ -17,6 +17,14 @@ Paste, drop, or select up to four screenshots, add a short note, and Project Inb
 
 It does **not** run a watcher, start an agent automatically, publish anything, or provide a kanban board.
 
+## Workflow preview
+
+![Project Inbox capture page showing project identity, workflow metadata, screenshot input, message input, recent captures, and the configured ticket-register link](docs/images/project-inbox-workflow.png)
+
+The capture page keeps the active project name and filesystem path visible,
+records the repository's configured workflow, and shows recent items without
+turning the inbox into a second task-management system.
+
 ## Requirements
 
 - Node.js 22 or newer
