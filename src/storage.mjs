@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { lstat, mkdir, readFile, readdir, realpath, rename, unlink, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, readdir, realpath, unlink, writeFile } from 'node:fs/promises'
 import { relative, resolve, sep } from 'node:path'
 
 export const MAX_REQUEST_BYTES = 44 * 1024 * 1024
@@ -119,6 +119,11 @@ function validateMessage(payload) {
 
 export async function saveInboxEntry(config, payload, now = new Date(), token = randomBytes(3).toString('hex')) {
   const message = validateMessage(payload)
+  const sourceId = payload.sourceId === undefined || payload.sourceId === '' ? null : payload.sourceId
+  if (sourceId !== null && (typeof sourceId !== 'string' || !ENTRY_ID_PATTERN.test(sourceId))) {
+    throw new Error('The source capture ID is invalid.')
+  }
+  if (sourceId) await readInboxEntry(config, sourceId)
 
   const images = decodeImages(payload)
   const safeToken = String(token).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'entry'
@@ -142,6 +147,7 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     `workflow: ${yamlString(config.workflow.label)}`,
     `workflow_profile: ${yamlString(config.workflow.profile)}`,
     `message_length: ${message.length}`,
+    ...(sourceId ? [`source: ${yamlString(sourceId)}`] : []),
     ...(imageName ? [`attachment: ${yamlString(imageName)}`] : []),
     ...(imageNames.length ? [`attachments: ${yamlString(imageNames)}`] : []),
     ...(originalName ? [`original_name: ${yamlString(originalName)}`] : []),
@@ -208,15 +214,6 @@ function messageBounds(document) {
     : document.lastIndexOf(endMarker)
   if (start === -1 || end === -1 || end <= start) throw new Error('Inbox item has no editable message section.')
   return { start: start + startMarker.length, end }
-}
-
-function withMessageLength(document, length) {
-  if (/^message_length:\s*.+$/m.test(document)) {
-    return document.replace(/^message_length:\s*.+$/m, `message_length: ${length}`)
-  }
-  const frontmatterEnd = document.indexOf('\n---\n', 4)
-  if (frontmatterEnd === -1) throw new Error('Inbox item has invalid frontmatter.')
-  return `${document.slice(0, frontmatterEnd)}\nmessage_length: ${length}${document.slice(frontmatterEnd)}`
 }
 
 function messageFromDocument(document) {
@@ -287,24 +284,7 @@ export async function readInboxDetails(config, id) {
     status: frontmatterValue(document, 'status') ?? 'legacy',
     created: frontmatterValue(document, 'created') ?? null,
     workflow: frontmatterValue(document, 'workflow') ?? null,
+    source: frontmatterValue(document, 'source') ?? null,
     attachmentCount: attachmentNames(document, id).length,
   }
-}
-
-export async function updateInboxMessage(config, id, payload) {
-  const message = validateMessage(payload)
-  const document = await readInboxEntry(config, id)
-  const { start, end } = messageBounds(document)
-  const updated = withMessageLength(`${document.slice(0, start)}${message}${document.slice(end)}`, message.length)
-  const inboxPath = await safeInboxPath(config, { create: false })
-  const notePath = resolve(inboxPath, `${id}.md`)
-  const temporaryPath = resolve(inboxPath, `.${id}.${randomBytes(6).toString('hex')}.tmp`)
-  try {
-    await writeFile(temporaryPath, updated, { flag: 'wx' })
-    await rename(temporaryPath, notePath)
-  } catch (error) {
-    await unlink(temporaryPath).catch(() => {})
-    throw error
-  }
-  return readInboxDetails(config, id)
 }

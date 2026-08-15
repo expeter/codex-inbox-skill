@@ -8,7 +8,7 @@ import { Script } from 'node:vm'
 import { loadConfig, normalizeConfig } from '../src/config.mjs'
 import { renderInboxPage } from '../src/page.mjs'
 import { DEFAULT_PORT, isLoopbackAddress, startInboxServer } from '../src/server.mjs'
-import { listInboxEntries, readInboxDetails, saveInboxEntry, updateInboxMessage } from '../src/storage.mjs'
+import { listInboxEntries, readInboxDetails, saveInboxEntry } from '../src/storage.mjs'
 
 const temporaryDirectories = []
 const ONE_PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/6fDqNwAAAABJRU5ErkJggg=='
@@ -119,11 +119,14 @@ test('the capture page keeps its small controls contextual', async () => {
   assert.match(genericPage, /project-inbox-theme/)
   assert.match(genericPage, /navigator\.clipboard\.writeText\(id\)/)
   assert.match(genericPage, /copy\.className = 'copy-id'/)
-  assert.match(genericPage, /captureDialog\.showModal\(\)/)
-  assert.match(genericPage, /openCapture\(entry\.id\)/)
-  assert.match(genericPage, /method: 'PATCH'/)
-  assert.match(genericPage, /copy ID ⧉/)
-  assert.match(genericPage, /id="capture-images"/)
+  assert.match(genericPage, /reuseCapture\(entry\.id\)/)
+  assert.match(genericPage, /messageLabel\.textContent = '> follow-up to ' \+ id/)
+  assert.match(genericPage, /save as new capture ↵/)
+  assert.match(genericPage, /sourceId: selectedCaptureId \|\| undefined/)
+  assert.match(genericPage, /classList\.toggle\('reusing'/)
+  assert.match(genericPage, /new File\(\[blob\]/)
+  assert.doesNotMatch(genericPage, /<dialog/)
+  assert.doesNotMatch(genericPage, /method: 'PATCH'/)
   assert.match(genericPage, /Raw notes and screenshots saved in inbox\//)
   assert.match(genericPage, /Status tracks how each capture has been processed/)
   assert.doesNotMatch(genericPage, /ticket states/)
@@ -180,20 +183,31 @@ test('message-only items work and malformed images are rejected', async () => {
   )
 })
 
-test('message edits preserve capture structure around untrusted Markdown headings', async () => {
+test('follow-ups preserve completed captures and reopen the evidence under a new ID', async () => {
   const root = await temporaryProject()
   const config = normalizeConfig(root)
   const original = 'First observation.\n\n## Processing guidance\n\nThis heading is part of the message.'
   const result = await saveInboxEntry(config, { message: original, imageDataUrl: ONE_PIXEL_PNG }, new Date(), 'edit')
   assert.equal((await readInboxDetails(config, result.id)).message, original)
+  const originalDocument = await readFile(join(root, result.notePath), 'utf8')
+  await writeFile(join(root, result.notePath), originalDocument.replace('status: new', 'status: done'))
 
-  const updated = await updateInboxMessage(config, result.id, { message: 'Corrected observation.' })
-  assert.equal(updated.message, 'Corrected observation.')
-  assert.equal(updated.status, 'new')
-  assert.equal(updated.attachmentCount, 1)
-  const document = await readFile(join(root, result.notePath), 'utf8')
-  assert.match(document, /message_length: 22/)
-  assert.match(document, /## Processing guidance\n\nReview the project instructions/)
+  const followUp = await saveInboxEntry(config, {
+    message: 'Corrected observation.', sourceId: result.id, imageDataUrl: ONE_PIXEL_PNG,
+  }, new Date('2026-08-09T10:11:12.000Z'), 'follow')
+  assert.notEqual(followUp.id, result.id)
+  assert.deepEqual(await readInboxDetails(config, result.id), {
+    id: result.id, message: original, status: 'done', created: (await readInboxDetails(config, result.id)).created,
+    workflow: 'Project workflow', source: null, attachmentCount: 1,
+  })
+  const followUpDetails = await readInboxDetails(config, followUp.id)
+  assert.equal(followUpDetails.message, 'Corrected observation.')
+  assert.equal(followUpDetails.status, 'new')
+  assert.equal(followUpDetails.source, result.id)
+  assert.equal(followUpDetails.attachmentCount, 1)
+  await assert.rejects(saveInboxEntry(config, {
+    message: 'Missing source.', sourceId: 'INBOX-20260809-101112-missing',
+  }), /not found/)
 })
 
 test('one inbox item can preserve multiple screenshots', async () => {
@@ -272,22 +286,28 @@ test('the HTTP server is loopback-only and accepts an entry', async () => {
       status: 'new',
       created: entries[0].created,
       workflow: 'Project workflow',
+      source: null,
       attachmentCount: 1,
     })
-    const update = await fetch(`${origin}/api/entries/${entries[0].id}`, {
-      method: 'PATCH',
+    const followUpResponse = await fetch(`${origin}/api/entries`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Updated through the editor.' }),
+      body: JSON.stringify({
+        message: 'Follow-up through the composer.', sourceId: entries[0].id, imageDataUrl: ONE_PIXEL_PNG,
+      }),
     })
-    assert.equal(update.status, 200)
-    assert.equal((await update.json()).message, 'Updated through the editor.')
+    assert.equal(followUpResponse.status, 201)
+    const followUpId = (await followUpResponse.json()).id
+    const followUp = await fetch(`${origin}/api/entries/${followUpId}`)
+    assert.equal(followUp.status, 200)
+    assert.equal((await followUp.json()).source, entries[0].id)
+    assert.equal((await fetch(`${origin}/api/entries/${entries[0].id}`, { method: 'PATCH' })).status, 405)
     const capture = await fetch(`${origin}/captures/${entries[0].id}`)
     assert.equal(capture.status, 200)
     assert.equal(capture.headers.get('content-type'), 'text/markdown; charset=utf-8')
-    const updatedDocument = await capture.text()
-    assert.match(updatedDocument, /message_length: 27/)
-    assert.match(updatedDocument, /Updated through the editor\./)
-    assert.match(updatedDocument, /## Processing guidance/)
+    const originalDocument = await capture.text()
+    assert.match(originalDocument, /Captured through HTTP\./)
+    assert.doesNotMatch(originalDocument, /Follow-up through the composer\./)
     const attachment = await fetch(`${origin}/captures/${entries[0].id}/attachments/1`)
     assert.equal(attachment.status, 200)
     assert.equal(attachment.headers.get('content-type'), 'image/png')

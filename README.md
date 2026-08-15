@@ -12,7 +12,8 @@ Paste, drop, or select up to four screenshots, add a short note, and Project Inb
 - Saves each message as an `INBOX-*.md` file with optional PNG, JPEG, WebP, or GIF attachments.
 - Supports up to four removable screenshot previews in a horizontal strip.
 - Shows raw inbox captures and their `new`, `triaged`, or `done` processing state separately from accepted changes in a configured project ticket register.
-- Opens each capture in an in-page editor with its screenshots, editable message, and a quick copy-ID control.
+- Reuses a capture in the main composer with its message and screenshots, then saves the revision as a new `new` capture linked to the untouched source.
+- Keeps a quick copy-ID control beside each capture.
 - Remembers a light or dark theme in the browser.
 - Offers a small project accent palette so concurrent inboxes are easier to distinguish.
 - Fits into an existing project workflow instead of inventing a new one.
@@ -118,7 +119,7 @@ inbox/
 ```
 
 The Markdown frontmatter records a stable capture ID, creation time, state, workflow, and attachment names. The message and configured processing guidance remain readable without Project Inbox.
-The browser editor can correct a capture's message while preserving its ID, state, attachments, and processing guidance.
+Selecting a saved capture loads its message and screenshots into the main composer. Submitting creates a new capture with a `source` reference; the selected capture and its state remain unchanged.
 
 Whether captures are versioned is a per-project decision, not a skill-installation option. Project Inbox never changes `.gitignore` automatically. For public repositories, ignoring `/inbox/` is recommended because raw notes and screenshots can contain sensitive or noisy evidence; map sanitized outcomes into the repository's normal tracked ticket workflow. Teams that intentionally want versioned evidence can commit the directory instead.
 

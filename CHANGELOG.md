@@ -3,8 +3,8 @@
 ## Unreleased
 
 - Replaced olive-tinted surfaces with a neutral technical palette, made blue the generic accent, and followed the operating-system theme until a browser preference is saved.
-- Added quick copy-ID controls to capture rows and the capture editor.
-- Added an in-page capture editor for reviewing screenshots, correcting the message, and copying the capture ID without leaving the inbox.
+- Added quick copy-ID controls to capture rows.
+- Added an append-only follow-up flow that reuses an existing capture in the main composer, highlights its source row, and saves revisions under a new linked capture ID.
 - Clarified that inbox captures are raw evidence whose processing state is separate from accepted changes in the project ticket register.
 - Replaced the README workflow screenshot with the approved neutral-blue capture.
 - Clarified that a newly installed skill is used in a following turn, with a Codex restart only when automatic discovery does not expose it.

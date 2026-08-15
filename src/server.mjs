@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import { relative, resolve, sep } from 'node:path'
 import { loadConfig } from './config.mjs'
 import { renderInboxPage } from './page.mjs'
-import { listInboxEntries, MAX_REQUEST_BYTES, readInboxAttachment, readInboxDetails, readInboxEntry, saveInboxEntry, updateInboxMessage } from './storage.mjs'
+import { listInboxEntries, MAX_REQUEST_BYTES, readInboxAttachment, readInboxDetails, readInboxEntry, saveInboxEntry } from './storage.mjs'
 
 export const LOOPBACK_HOST = '127.0.0.1'
 export const DEFAULT_PORT = 4783
@@ -99,14 +99,6 @@ export async function createInboxServer({ projectRoot }) {
       }
       return
     }
-    if (entryApiMatch && request.method === 'PATCH') {
-      try {
-        respondJson(response, 200, await updateInboxMessage(config, entryApiMatch[1], await readJsonBody(request)))
-      } catch (error) {
-        respondJson(response, 400, { error: error instanceof Error ? error.message : 'Unable to update the inbox item.' })
-      }
-      return
-    }
     const attachmentMatch = /^\/captures\/(INBOX-\d{8}-\d{6}-[a-z0-9]{1,12})\/attachments\/([1-4])$/.exec(pathname)
     if (attachmentMatch && request.method === 'GET') {
       try {
@@ -156,7 +148,7 @@ export async function createInboxServer({ projectRoot }) {
       return
     }
     if (pathname.startsWith('/api/entries/') || pathname === '/api/entries' || pathname === '/api/health' || pathname === '/workflow/tickets' || pathname === '/' || pathname.startsWith('/inbox') || pathname.startsWith('/captures/')) {
-      response.setHeader('Allow', pathname.startsWith('/api/entries/') ? 'GET, PATCH' : pathname === '/api/entries' ? 'GET, POST' : 'GET')
+      response.setHeader('Allow', pathname.startsWith('/api/entries/') ? 'GET' : pathname === '/api/entries' ? 'GET, POST' : 'GET')
       respond(response, 405, 'Method not allowed.')
       return
     }
