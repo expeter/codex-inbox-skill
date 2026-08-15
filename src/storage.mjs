@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { lstat, mkdir, readFile, readdir, realpath, unlink, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, readdir, realpath, rename, unlink, writeFile } from 'node:fs/promises'
 import { relative, resolve, sep } from 'node:path'
 
 export const MAX_REQUEST_BYTES = 44 * 1024 * 1024
@@ -105,7 +105,7 @@ function yamlString(value) {
   return JSON.stringify(value)
 }
 
-export async function saveInboxEntry(config, payload, now = new Date(), token = randomBytes(3).toString('hex')) {
+function validateMessage(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw new Error('The inbox submission must be a JSON object.')
   }
@@ -114,6 +114,11 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
   if (message.length > MAX_MESSAGE_LENGTH) {
     throw new Error(`Keep the message under ${MAX_MESSAGE_LENGTH} characters.`)
   }
+  return message
+}
+
+export async function saveInboxEntry(config, payload, now = new Date(), token = randomBytes(3).toString('hex')) {
+  const message = validateMessage(payload)
 
   const images = decodeImages(payload)
   const safeToken = String(token).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'entry'
@@ -136,6 +141,7 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     `project: ${yamlString(config.projectName)}`,
     `workflow: ${yamlString(config.workflow.label)}`,
     `workflow_profile: ${yamlString(config.workflow.profile)}`,
+    `message_length: ${message.length}`,
     ...(imageName ? [`attachment: ${yamlString(imageName)}`] : []),
     ...(imageNames.length ? [`attachments: ${yamlString(imageNames)}`] : []),
     ...(originalName ? [`original_name: ${yamlString(originalName)}`] : []),
@@ -175,7 +181,9 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
 }
 
 function frontmatterValue(document, key) {
-  const match = new RegExp(`^${key}:\\s*(.+)$`, 'm').exec(document)
+  const frontmatterEnd = document.startsWith('---\n') ? document.indexOf('\n---\n', 4) : -1
+  if (frontmatterEnd === -1) return undefined
+  const match = new RegExp(`^${key}:\\s*(.+)$`, 'm').exec(document.slice(4, frontmatterEnd))
   if (!match) return undefined
   try { return JSON.parse(match[1]) } catch { return match[1].trim() }
 }
@@ -187,6 +195,33 @@ function attachmentNames(document, id) {
   return candidates.filter(name => typeof name === 'string'
     && name.startsWith(id)
     && /^(?:-[2-4])?\.(?:png|jpg|webp|gif)$/.test(name.slice(id.length))).slice(0, MAX_IMAGES)
+}
+
+function messageBounds(document) {
+  const startMarker = '\n## Message\n\n'
+  const endMarker = '\n## Processing guidance\n\n'
+  const start = document.indexOf(startMarker)
+  const messageLength = frontmatterValue(document, 'message_length')
+  const measuredEnd = start + startMarker.length + messageLength
+  const end = Number.isInteger(messageLength) && messageLength >= 0 && document.startsWith(endMarker, measuredEnd)
+    ? measuredEnd
+    : document.lastIndexOf(endMarker)
+  if (start === -1 || end === -1 || end <= start) throw new Error('Inbox item has no editable message section.')
+  return { start: start + startMarker.length, end }
+}
+
+function withMessageLength(document, length) {
+  if (/^message_length:\s*.+$/m.test(document)) {
+    return document.replace(/^message_length:\s*.+$/m, `message_length: ${length}`)
+  }
+  const frontmatterEnd = document.indexOf('\n---\n', 4)
+  if (frontmatterEnd === -1) throw new Error('Inbox item has invalid frontmatter.')
+  return `${document.slice(0, frontmatterEnd)}\nmessage_length: ${length}${document.slice(frontmatterEnd)}`
+}
+
+function messageFromDocument(document) {
+  const { start, end } = messageBounds(document)
+  return document.slice(start, end).trim()
 }
 
 export async function listInboxEntries(config) {
@@ -242,4 +277,34 @@ export async function readInboxAttachment(config, id, number) {
   if (stats.isSymbolicLink() || !stats.isFile()) throw new Error('Inbox attachment is not a regular file.')
   const extension = name.slice(name.lastIndexOf('.') + 1)
   return { bytes: await readFile(attachmentPath), contentType: ATTACHMENT_CONTENT_TYPES[extension] }
+}
+
+export async function readInboxDetails(config, id) {
+  const document = await readInboxEntry(config, id)
+  return {
+    id,
+    message: messageFromDocument(document),
+    status: frontmatterValue(document, 'status') ?? 'legacy',
+    created: frontmatterValue(document, 'created') ?? null,
+    workflow: frontmatterValue(document, 'workflow') ?? null,
+    attachmentCount: attachmentNames(document, id).length,
+  }
+}
+
+export async function updateInboxMessage(config, id, payload) {
+  const message = validateMessage(payload)
+  const document = await readInboxEntry(config, id)
+  const { start, end } = messageBounds(document)
+  const updated = withMessageLength(`${document.slice(0, start)}${message}${document.slice(end)}`, message.length)
+  const inboxPath = await safeInboxPath(config, { create: false })
+  const notePath = resolve(inboxPath, `${id}.md`)
+  const temporaryPath = resolve(inboxPath, `.${id}.${randomBytes(6).toString('hex')}.tmp`)
+  try {
+    await writeFile(temporaryPath, updated, { flag: 'wx' })
+    await rename(temporaryPath, notePath)
+  } catch (error) {
+    await unlink(temporaryPath).catch(() => {})
+    throw error
+  }
+  return readInboxDetails(config, id)
 }

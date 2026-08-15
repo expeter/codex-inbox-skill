@@ -181,12 +181,29 @@ export function renderInboxPage(config) {
     .ticket-link:hover { text-decoration: underline; }
     #recent-list { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }
     #recent-list li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-    #recent-list .item-id { flex: 1; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+    #recent-list .item-id { flex: 1; min-width: 0; overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
     #recent-list .item-id:hover { color: var(--accent); text-decoration: underline; }
-    #recent-list .attachment-link { flex: none; margin: -3px 0; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); text-decoration: none; }
-    #recent-list .attachment-link:hover, #recent-list .attachment-link:focus-visible { border-color: var(--button-line); color: var(--accent); }
     #recent-list .copy-id { flex: none; width: 25px; height: 25px; margin: -4px 0; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font: 15px/1 ui-sans-serif, system-ui, sans-serif; }
     #recent-list .copy-id:hover, #recent-list .copy-id:focus-visible { border-color: var(--line); color: var(--accent); }
+    dialog { width: min(720px, calc(100% - 32px)); max-height: calc(100vh - 32px); padding: 0; overflow: hidden; border: 1px solid var(--strong-line); border-radius: 11px; background: var(--paper); color: var(--text); box-shadow: 0 28px 80px var(--shadow); }
+    dialog::backdrop { background: #080b10b8; backdrop-filter: blur(2px); }
+    .capture-editor { display: grid; max-height: calc(100vh - 34px); grid-template-rows: auto minmax(0, 1fr) auto; }
+    .editor-head, .editor-actions { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--bar); }
+    .editor-head { border-bottom: 1px solid var(--line); }
+    .editor-head code { min-width: 0; overflow: hidden; color: var(--accent); text-overflow: ellipsis; white-space: nowrap; }
+    .editor-head .copy-capture { margin-left: auto; padding: 6px 9px; background: transparent; color: var(--muted); }
+    .dialog-close { width: 28px; height: 28px; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font-size: 20px; }
+    .editor-body { overflow-y: auto; padding: 18px; }
+    .capture-meta { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
+    .capture-images { display: flex; gap: 12px; margin-bottom: 18px; overflow-x: auto; }
+    .capture-images:empty { display: none; }
+    .capture-images img { flex: 0 0 min(360px, 88%); width: min(360px, 88%); max-height: 280px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; background: var(--preview); }
+    #capture-message { min-height: 150px; }
+    .editor-actions { justify-content: flex-end; border-top: 1px solid var(--line); }
+    .editor-actions .secondary { background: transparent; color: var(--muted); }
+    #editor-status { margin-right: auto; color: var(--muted); font-size: 12px; }
+    #editor-status.success { color: var(--accent); }
+    #editor-status.error { color: var(--red); }
     input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     @media (max-width: 560px) { .content { padding: 22px; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } }
   </style>
@@ -216,6 +233,26 @@ export function renderInboxPage(config) {
         <ul id="recent-list"><li>loading…</li></ul>
       </section>
     </section>
+    <dialog id="capture-dialog" aria-labelledby="capture-dialog-title">
+      <div class="capture-editor">
+        <header class="editor-head">
+          <code id="capture-dialog-title">capture</code>
+          <button class="copy-capture" id="copy-capture" type="button">copy ID ⧉</button>
+          <button class="dialog-close" id="close-capture" type="button" aria-label="Close capture editor">×</button>
+        </header>
+        <div class="editor-body">
+          <p class="capture-meta" id="capture-meta"></p>
+          <div class="capture-images" id="capture-images" aria-label="Capture screenshots"></div>
+          <label for="capture-message">&gt; captured message</label>
+          <textarea id="capture-message" maxlength="4000"></textarea>
+        </div>
+        <footer class="editor-actions">
+          <span id="editor-status" role="status" aria-live="polite"></span>
+          <button class="secondary" id="cancel-capture" type="button">cancel</button>
+          <button id="save-capture" type="button">save changes ↵</button>
+        </footer>
+      </div>
+    </dialog>
   </main>
   <script>
     const dropzone = document.querySelector('#dropzone')
@@ -225,7 +262,15 @@ export function renderInboxPage(config) {
     const submit = document.querySelector('#submit')
     const status = document.querySelector('#status')
     const themeToggle = document.querySelector('#theme-toggle')
+    const captureDialog = document.querySelector('#capture-dialog')
+    const captureDialogTitle = document.querySelector('#capture-dialog-title')
+    const captureMeta = document.querySelector('#capture-meta')
+    const captureImages = document.querySelector('#capture-images')
+    const captureMessage = document.querySelector('#capture-message')
+    const editorStatus = document.querySelector('#editor-status')
+    const saveCapture = document.querySelector('#save-capture')
     const screenshots = []
+    let selectedCaptureId = ''
 
     function setStatus(text, type = '') { status.textContent = text; status.className = type }
     function updateThemeButton() {
@@ -299,6 +344,37 @@ export function renderInboxPage(config) {
         reader.readAsDataURL(file)
       })
     }
+    async function copyId(id, target = status) {
+      try { await navigator.clipboard.writeText(id); target.textContent = 'copied ' + id; target.className = 'success' }
+      catch { target.textContent = 'Unable to copy the capture ID.'; target.className = 'error' }
+    }
+    async function openCapture(id) {
+      selectedCaptureId = id
+      captureDialogTitle.textContent = id
+      captureMeta.textContent = 'loading capture…'
+      captureMessage.value = ''
+      captureImages.replaceChildren()
+      editorStatus.textContent = ''
+      editorStatus.className = ''
+      captureDialog.showModal()
+      try {
+        const response = await fetch('/api/entries/' + encodeURIComponent(id))
+        const entry = await response.json()
+        if (!response.ok) throw new Error(entry.error)
+        captureMeta.textContent = 'capture status: ' + entry.status + (entry.created ? ' · ' + entry.created : '')
+        captureMessage.value = entry.message
+        for (let index = 1; index <= entry.attachmentCount; index += 1) {
+          const image = document.createElement('img')
+          image.src = '/captures/' + encodeURIComponent(id) + '/attachments/' + index
+          image.alt = 'Screenshot ' + index + ' for ' + id
+          captureImages.append(image)
+        }
+        captureMessage.focus()
+      } catch (error) {
+        editorStatus.textContent = error.message || 'Unable to load the capture.'
+        editorStatus.className = 'error'
+      }
+    }
     async function loadRecent() {
       const list = document.querySelector('#recent-list')
       try {
@@ -311,28 +387,34 @@ export function renderInboxPage(config) {
         }
         for (const entry of result.entries.slice(0, 8)) {
           const item = document.createElement('li')
-          const id = document.createElement('a'); id.className = 'item-id'; id.textContent = entry.id
-          id.href = '/captures/' + encodeURIComponent(entry.id); id.target = '_blank'; id.rel = 'noreferrer'
+          const id = document.createElement('button'); id.className = 'item-id'; id.type = 'button'; id.textContent = entry.id
+          id.title = 'View and edit capture'; id.addEventListener('click', () => openCapture(entry.id))
           const copy = document.createElement('button'); copy.className = 'copy-id'; copy.type = 'button'; copy.textContent = '⧉'
           copy.title = 'Copy capture ID'; copy.setAttribute('aria-label', 'Copy ' + entry.id)
-          copy.addEventListener('click', async () => {
-            try { await navigator.clipboard.writeText(entry.id); setStatus('copied ' + entry.id, 'success') }
-            catch { setStatus('Unable to copy the capture ID.', 'error') }
-          })
+          copy.addEventListener('click', () => copyId(entry.id))
           const state = document.createElement('span'); state.textContent = entry.status
-          item.append(id)
-          const attachmentCount = Math.min(4, Math.max(0, Number(entry.attachmentCount) || 0))
-          for (let index = 1; index <= attachmentCount; index += 1) {
-            const attachment = document.createElement('a'); attachment.className = 'attachment-link'
-            attachment.href = '/captures/' + encodeURIComponent(entry.id) + '/attachments/' + index
-            attachment.target = '_blank'; attachment.rel = 'noreferrer'; attachment.textContent = '▧' + index
-            attachment.title = 'Open screenshot ' + index; attachment.setAttribute('aria-label', 'Open screenshot ' + index + ' for ' + entry.id)
-            item.append(attachment)
-          }
-          item.append(copy, state); list.append(item)
+          item.append(id, copy, state); list.append(item)
         }
       } catch { list.textContent = 'Unable to load recent captures.' }
     }
+    document.querySelector('#copy-capture').addEventListener('click', () => copyId(selectedCaptureId, editorStatus))
+    document.querySelector('#close-capture').addEventListener('click', () => captureDialog.close())
+    document.querySelector('#cancel-capture').addEventListener('click', () => captureDialog.close())
+    captureDialog.addEventListener('click', event => { if (event.target === captureDialog) captureDialog.close() })
+    saveCapture.addEventListener('click', async () => {
+      if (!captureMessage.value.trim()) { editorStatus.textContent = 'Add a short message first.'; editorStatus.className = 'error'; return }
+      saveCapture.disabled = true; editorStatus.textContent = 'saving…'; editorStatus.className = ''
+      try {
+        const response = await fetch('/api/entries/' + encodeURIComponent(selectedCaptureId), {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: captureMessage.value }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error)
+        captureDialog.close(); setStatus('updated ' + result.id, 'success'); await loadRecent()
+      } catch (error) { editorStatus.textContent = error.message || 'Unable to update the capture.'; editorStatus.className = 'error' }
+      finally { saveCapture.disabled = false }
+    })
     submit.addEventListener('click', async () => {
       if (!message.value.trim()) return setStatus('Add a short message first.', 'error')
       submit.disabled = true; setStatus('saving…')
