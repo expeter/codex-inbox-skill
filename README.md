@@ -46,18 +46,13 @@ Give Codex the repository URL and an explicit installation request:
 ```text
 Use $skill-installer to install project-inbox from:
 https://github.com/expeter/codex-inbox-skill
+After installation, start Project Inbox for the current project.
 ```
 
 Codex installs a non-Git snapshot, typically at
-`~/.codex/skills/project-inbox`. In the next turn, start it with:
-
-```text
-Use $project-inbox to start this project's local inbox.
-```
-
-Codex normally detects newly installed skills automatically. If
-`$project-inbox` is not available, restart Codex and repeat that request. To
-update the snapshot later, repeat the same installation request.
+`~/.codex/skills/project-inbox`, then starts the inbox in the same session. If
+the installed skill is not discovered, restart Codex and ask it to start
+Project Inbox. To update the snapshot later, repeat the installation request.
 
 ### Install globally with Git
 

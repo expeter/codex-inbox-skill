@@ -8,7 +8,7 @@
 - Labeled raw reports as inbox submissions and accepted project changes as implementation tickets, and displayed each follow-up's source ID in both the recent list and saved Markdown body.
 - Simplified prepared-follow-up controls to compact `save` and full-size `cancel` actions grouped together, plus concise status feedback.
 - Replaced the README workflow screenshot with the approved neutral-blue capture.
-- Clarified that a newly installed skill is used in a following turn, with a Codex restart only when automatic discovery does not expose it.
+- Made the Codex installation prompt start Project Inbox immediately, with restart guidance only as a discovery fallback.
 - Distinguished Codex-managed non-Git snapshots from global Git checkouts and their different update methods.
 - Reduced the Codex installer prompt to the skill source, avoiding consumer-side repository verification.
 - Streamlined skill setup into copyable Codex-assisted, global, workspace-local, and direct-server paths with top-level links.
