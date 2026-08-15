@@ -24,6 +24,8 @@ Place `.project-inbox.json` in the project root. All fields are optional.
 
 Without a configuration file, the project directory name is displayed, items are written to `inbox/`, and the workflow is called `Project workflow`.
 
+Capture retention belongs to each target project rather than the skill installation. Project Inbox does not edit ignore rules. For a public Git repository, prefer ignoring `/inbox/` and recording sanitized outcomes in the repository's tracked workflow. A project may instead commit its inbox when versioned capture evidence is intentional.
+
 The server listens only on `127.0.0.1`. The default port is `4783`; pass `--port 0` to select an available port or `--port <number>` to choose another one.
 
 If the default port is occupied, the server selects an available port from `4784` through `4883` and prints the actual URL. An explicit `--port` never falls back silently. With npm, use the argument separator:

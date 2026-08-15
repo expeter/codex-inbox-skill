@@ -196,6 +196,8 @@ inbox/
 
 The Markdown frontmatter records a stable capture ID, creation time, state, workflow, and attachment names. The message and configured processing guidance remain readable without Project Inbox.
 
+Whether captures are versioned is a per-project decision, not a skill-installation option. Project Inbox never changes `.gitignore` automatically. For public repositories, ignoring `/inbox/` is recommended because raw notes and screenshots can contain sensitive or noisy evidence; map sanitized outcomes into the repository's normal tracked ticket workflow. Teams that intentionally want versioned evidence can commit the directory instead.
+
 State meanings are intentionally small:
 
 - `new`: captured but not reviewed

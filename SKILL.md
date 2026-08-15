@@ -13,6 +13,7 @@ Use the bundled zero-dependency Node CLI to collect visual feedback without coup
 2. Read `.project-inbox.json` when present. Read [configuration.md](references/configuration.md) before creating or changing that file.
    Keep the generic workflow by default. When setting up a project that already uses stable ticket identifiers, specifications, regression gates, and a changelog, suggest the optional `spec-driven` profile described in the reference without enabling it automatically.
    When project identity would help distinguish concurrent inboxes, offer the closest built-in appearance accent; keep the displayed project name and path as the primary identity cues.
+   Treat capture retention as a per-project choice, not an installation question. Never edit ignore rules automatically. When first configuring a Git repository, explain that the inbox directory is created with the first saved capture; recommend ignoring raw captures in public repositories and mapping sanitized results into the repository's tracked workflow, while allowing teams to intentionally version the evidence.
 3. Start the server with:
 
    ```bash
