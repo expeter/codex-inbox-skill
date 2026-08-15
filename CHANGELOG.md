@@ -2,9 +2,10 @@
 
 ## Unreleased
 
+- Made the Codex installation prompt copyable, added direct installation links, and reduced the global Git workflow to concise clone and update commands.
 - Included the README workflow image in the published package contents.
 - Documented capture retention as an explicit per-project choice, with ignored raw captures recommended for public repositories.
-- Expanded Codex skill installation guidance with snapshot, updateable Git checkout, development symlink, release pinning, authentication troubleshooting, migration, verification, and explicit update workflows.
+- Expanded Codex skill installation guidance with snapshot, global Git checkout, development symlink, duplicate migration, and invocation workflows.
 - Added a capture-page screenshot to the README as a visual example of the Project Inbox workflow.
 - Corrected the MIT license publisher attribution to expeter.
 

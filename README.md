@@ -4,6 +4,8 @@ A tiny localhost inbox for sending visual feedback to Codex without turning your
 
 Paste, drop, or select up to four screenshots, add a short note, and Project Inbox saves the capture as durable Markdown beside your code. Codex can list or triage those captures later when you explicitly ask.
 
+[Install with Codex](#install-with-codex) · [Install globally](#install-globally)
+
 ## What it does
 
 - Runs a zero-dependency browser app on `127.0.0.1`.
@@ -63,14 +65,17 @@ copy and path are active; same-named copies are not merged.
 
 Choose the installation style that matches how you want to maintain the skill.
 
-### Ask Codex to install a snapshot
+### Install with Codex
 
 Give Codex the repository URL and an explicit installation request:
 
-> Use `$skill-installer` to install the `project-inbox` skill from
-> `https://github.com/expeter/codex-inbox-skill`. Report the installed path and
-> revision, run its focused tests, and do not overwrite an existing installation
-> without preserving it first.
+```text
+Use $skill-installer to install the project-inbox skill from:
+https://github.com/expeter/codex-inbox-skill
+
+Report the installed path and revision, then run its focused tests.
+Do not overwrite an existing installation without preserving it first.
+```
 
 The installer downloads the selected GitHub revision into a local skill
 directory. That copy is a snapshot: merely retaining the GitHub URL does not
@@ -79,64 +84,21 @@ when you want a newer snapshot. The installer refuses to overwrite an existing
 destination, so inspect or move the old copy outside every scanned skill
 directory before reinstalling.
 
-### Clone an updateable user-scoped copy
+### Install globally
 
-A Git checkout retains its origin and is the most convenient choice when you
-want explicit, reviewable updates. Use SSH when your GitHub account already has
-an SSH key:
+Install a user-scoped Git checkout when the skill should be available to Codex
+across projects:
 
 ```bash
 mkdir -p ~/.agents/skills
-git clone git@github.com:expeter/codex-inbox-skill.git \
+git clone https://github.com/expeter/codex-inbox-skill.git \
   ~/.agents/skills/project-inbox
 ```
 
-For HTTPS, authenticate first rather than placing a token in the URL. With the
-GitHub CLI:
+Update that checkout whenever you want the latest version:
 
 ```bash
-gh auth login
-mkdir -p ~/.agents/skills
-gh repo clone expeter/codex-inbox-skill ~/.agents/skills/project-inbox
-```
-
-If a failed clone leaves the destination behind, inspect it before retrying:
-
-```bash
-git -C ~/.agents/skills/project-inbox status --short --branch
-git -C ~/.agents/skills/project-inbox remote -v
-```
-
-If it is not a checkout you want to keep, move it to a backup outside the skill
-discovery tree, then retry. A name such as `project-inbox.backup` *inside*
-`~/.agents/skills` or `~/.codex/skills` is still discoverable as another skill.
-
-```bash
-mkdir -p ~/.local/share/project-inbox-skill-backups
-mv ~/.agents/skills/project-inbox \
-  ~/.local/share/project-inbox-skill-backups/project-inbox.previous
-```
-
-To update a clean Git-managed installation and verify it:
-
-```bash
-git -C ~/.agents/skills/project-inbox status --short --branch
 git -C ~/.agents/skills/project-inbox pull --ff-only
-npm --prefix ~/.agents/skills/project-inbox test
-```
-
-Codex can perform the same deliberate update when asked:
-
-> Update the Git-managed `$project-inbox` skill from its configured origin.
-> Preserve local changes, fast-forward only, run its focused tests, and report
-> the resulting revision. Do not create an automatic updater.
-
-For reproducible installations, check out a reviewed release tag instead of
-following the default branch:
-
-```bash
-git -C ~/.agents/skills/project-inbox fetch --tags
-git -C ~/.agents/skills/project-inbox switch --detach v1.0.0
 ```
 
 ### Use a development checkout directly

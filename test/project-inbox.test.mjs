@@ -38,6 +38,16 @@ test('published package contents include local README images', async () => {
   }
 })
 
+test('README exposes copyable installation shortcuts', async () => {
+  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8')
+
+  assert.match(readme, /\[Install with Codex\]\(#install-with-codex\)/)
+  assert.match(readme, /\[Install globally\]\(#install-globally\)/)
+  assert.match(readme, /### Install with Codex/)
+  assert.match(readme, /### Install globally/)
+  assert.match(readme, /```text\nUse \$skill-installer to install the project-inbox skill from:\nhttps:\/\/github\.com\/expeter\/codex-inbox-skill/)
+})
+
 test('configuration keeps the inbox inside the project root', async () => {
   const root = await temporaryProject()
   assert.throws(() => normalizeConfig(root, { inboxDir: '../elsewhere' }), /inside the project root/)

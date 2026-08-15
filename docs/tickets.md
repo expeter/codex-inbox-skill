@@ -24,3 +24,4 @@ None.
 - `CR-008` — Corrected the MIT license publisher attribution to expeter. Verified with the focused test suite and documentation diff checks.
 - `CR-009` — Added the submitted Project Inbox capture-page screenshot to the README as a visual workflow example. Verified with byte-identical image comparison, README asset checks, the focused test suite, and skill validation.
 - `FR-006` — Stabilized the skill for the `1.0.1` release by packaging README image assets and defining capture retention as an explicit per-project decision, with ignored raw captures recommended for public repositories. Verified with the package-content regression, focused test suite, and skill validation.
+- `CR-010` — Made the Codex installation prompt directly copyable, added top-level links for Codex-assisted and global skill installation, and reduced the global Git workflow to essential clone and update commands. Verified with focused README regression coverage and the test suite.
