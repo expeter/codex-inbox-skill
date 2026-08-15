@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reduced the Codex installer prompt to the skill source, avoiding consumer-side repository verification.
 - Streamlined skill setup into copyable Codex-assisted, global, workspace-local, and direct-server paths with top-level links.
 - Included the README workflow image in the published package contents.
 - Documented capture retention as an explicit per-project choice, with ignored raw captures recommended for public repositories.

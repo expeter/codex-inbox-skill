@@ -42,11 +42,8 @@ There are no runtime dependencies and no `npm install` step.
 Give Codex the repository URL and an explicit installation request:
 
 ```text
-Use $skill-installer to install the project-inbox skill from:
+Use $skill-installer to install project-inbox from:
 https://github.com/expeter/codex-inbox-skill
-
-Report the installed path and revision, then run its focused tests.
-Do not overwrite an existing installation without preserving it first.
 ```
 
 This creates a user-scoped snapshot. Repeat the request when you want to install
