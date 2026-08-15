@@ -120,6 +120,10 @@ test('the capture page keeps its small controls contextual', async () => {
   assert.match(genericPage, /navigator\.clipboard\.writeText\(entry\.id\)/)
   assert.match(genericPage, /id\.href = '\/captures\/'/)
   assert.match(genericPage, /copy\.className = 'copy-id'/)
+  assert.match(genericPage, /attachment\.className = 'attachment-link'/)
+  assert.match(genericPage, /'\/attachments\/' \+ index/)
+  assert.match(genericPage, /Raw notes and screenshots saved in inbox\//)
+  assert.match(genericPage, /Status tracks how each capture has been processed/)
   assert.doesNotMatch(genericPage, /ticket states/)
   for (const script of [...genericPage.matchAll(/<script>([\s\S]*?)<\/script>/g)]) {
     assert.doesNotThrow(() => new Script(script[1]))
@@ -129,7 +133,8 @@ test('the capture page keeps its small controls contextual', async () => {
     profile: 'spec-driven', ticketRegister: 'docs/tickets.md',
   } }))
   assert.match(specPage, /href="\/workflow\/tickets"/)
-  assert.match(specPage, /ticket states ↗/)
+  assert.match(specPage, /project tickets ↗/)
+  assert.match(specPage, /Capture status tracks triage here; accepted changes are tracked separately/)
 })
 
 test('a message and screenshot become one workflow item', async () => {
@@ -157,6 +162,7 @@ test('a message and screenshot become one workflow item', async () => {
     created: '2026-08-09T10:11:12.000Z',
     workflow: 'Ticket register',
     path: result.notePath,
+    attachmentCount: 1,
   }])
 })
 
@@ -189,6 +195,7 @@ test('one inbox item can preserve multiple screenshots', async () => {
   const note = await readFile(join(root, result.notePath), 'utf8')
   assert.match(note, /attachment: "INBOX-20260809-101112-pair.png"/)
   assert.match(note, /attachments: \["INBOX-20260809-101112-pair.png","INBOX-20260809-101112-pair-2.png"\]/)
+  assert.equal((await listInboxEntries(config))[0].attachmentCount, 2)
   await assert.rejects(saveInboxEntry(config, {
     message: 'Too many.', images: Array.from({ length: 5 }, () => ({ dataUrl: ONE_PIXEL_PNG })),
   }), /no more than 4/)
@@ -231,7 +238,7 @@ test('the HTTP server is loopback-only and accepts an entry', async () => {
     const response = await fetch(`${origin}/api/entries`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Captured through HTTP.' }),
+      body: JSON.stringify({ message: 'Captured through HTTP.', imageDataUrl: ONE_PIXEL_PNG }),
     })
     assert.equal(response.status, 201)
     assert.match((await response.json()).id, /^INBOX-/)
@@ -243,6 +250,11 @@ test('the HTTP server is loopback-only and accepts an entry', async () => {
     assert.equal(capture.status, 200)
     assert.equal(capture.headers.get('content-type'), 'text/markdown; charset=utf-8')
     assert.match(await capture.text(), /Captured through HTTP\./)
+    const attachment = await fetch(`${origin}/captures/${entries[0].id}/attachments/1`)
+    assert.equal(attachment.status, 200)
+    assert.equal(attachment.headers.get('content-type'), 'image/png')
+    assert.ok((await attachment.arrayBuffer()).byteLength > 0)
+    assert.equal((await fetch(`${origin}/captures/${entries[0].id}/attachments/4`)).status, 404)
     assert.equal((await fetch(`${origin}/captures/not-an-inbox-id`)).status, 404)
   } finally {
     await new Promise(resolve => server.close(resolve))

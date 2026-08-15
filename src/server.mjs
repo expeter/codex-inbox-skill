@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import { relative, resolve, sep } from 'node:path'
 import { loadConfig } from './config.mjs'
 import { renderInboxPage } from './page.mjs'
-import { listInboxEntries, MAX_REQUEST_BYTES, readInboxEntry, saveInboxEntry } from './storage.mjs'
+import { listInboxEntries, MAX_REQUEST_BYTES, readInboxAttachment, readInboxEntry, saveInboxEntry } from './storage.mjs'
 
 export const LOOPBACK_HOST = '127.0.0.1'
 export const DEFAULT_PORT = 4783
@@ -87,6 +87,16 @@ export async function createInboxServer({ projectRoot }) {
         respondJson(response, 200, { entries: (await listInboxEntries(config)).slice(0, 20) })
       } catch (error) {
         respondJson(response, 500, { error: error instanceof Error ? error.message : 'Unable to list inbox items.' })
+      }
+      return
+    }
+    const attachmentMatch = /^\/captures\/(INBOX-\d{8}-\d{6}-[a-z0-9]{1,12})\/attachments\/([1-4])$/.exec(pathname)
+    if (attachmentMatch && request.method === 'GET') {
+      try {
+        const attachment = await readInboxAttachment(config, attachmentMatch[1], Number(attachmentMatch[2]))
+        respond(response, 200, attachment.bytes, attachment.contentType)
+      } catch (error) {
+        respond(response, 404, error instanceof Error ? error.message : 'Unable to read the inbox attachment.')
       }
       return
     }

@@ -26,8 +26,11 @@ export function renderInboxPage(config) {
   const inboxDir = html(config.inboxDir)
   const inboxPath = html(`${projectPathValue}${config.inboxDir === '.' ? '' : `/${config.inboxDir}`}`)
   const ticketRegisterLink = config.workflow.profile === 'spec-driven' && config.workflow.ticketRegister
-    ? '<a class="ticket-link" href="/workflow/tickets" target="_blank" rel="noreferrer">ticket states ↗</a>'
+    ? '<a class="ticket-link" href="/workflow/tickets" target="_blank" rel="noreferrer">project tickets ↗</a>'
     : ''
+  const recentHelp = ticketRegisterLink
+    ? `Raw notes and screenshots saved in ${inboxDir}/. Capture status tracks triage here; accepted changes are tracked separately in the project ticket register.`
+    : `Raw notes and screenshots saved in ${inboxDir}/. Status tracks how each capture has been processed.`
   return String.raw`<!doctype html>
 <html lang="en" data-accent="${html(config.appearance.accent)}">
 <head>
@@ -173,12 +176,15 @@ export function renderInboxPage(config) {
     .recent { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
     .recent-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
     .recent h2 { margin: 0; font: 700 14px ui-monospace, monospace; color: var(--accent); }
+    .recent-help { margin: -4px 0 13px; color: var(--muted); font: 12px/1.5 ui-sans-serif, system-ui, sans-serif; }
     .ticket-link { color: var(--amber); font-size: 12px; text-decoration: none; }
     .ticket-link:hover { text-decoration: underline; }
     #recent-list { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }
     #recent-list li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
     #recent-list .item-id { flex: 1; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
     #recent-list .item-id:hover { color: var(--accent); text-decoration: underline; }
+    #recent-list .attachment-link { flex: none; margin: -3px 0; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); text-decoration: none; }
+    #recent-list .attachment-link:hover, #recent-list .attachment-link:focus-visible { border-color: var(--button-line); color: var(--accent); }
     #recent-list .copy-id { flex: none; width: 25px; height: 25px; margin: -4px 0; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font: 15px/1 ui-sans-serif, system-ui, sans-serif; }
     #recent-list .copy-id:hover, #recent-list .copy-id:focus-visible { border-color: var(--line); color: var(--accent); }
     input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
@@ -205,7 +211,8 @@ export function renderInboxPage(config) {
         <span id="status" role="status" aria-live="polite"></span>
       </div>
       <section class="recent" aria-labelledby="recent-title">
-        <div class="recent-heading"><h2 id="recent-title">&gt; recent captures</h2>${ticketRegisterLink}</div>
+        <div class="recent-heading"><h2 id="recent-title">&gt; inbox captures</h2>${ticketRegisterLink}</div>
+        <p class="recent-help">${recentHelp}</p>
         <ul id="recent-list"><li>loading…</li></ul>
       </section>
     </section>
@@ -313,7 +320,16 @@ export function renderInboxPage(config) {
             catch { setStatus('Unable to copy the capture ID.', 'error') }
           })
           const state = document.createElement('span'); state.textContent = entry.status
-          item.append(id, copy, state); list.append(item)
+          item.append(id)
+          const attachmentCount = Math.min(4, Math.max(0, Number(entry.attachmentCount) || 0))
+          for (let index = 1; index <= attachmentCount; index += 1) {
+            const attachment = document.createElement('a'); attachment.className = 'attachment-link'
+            attachment.href = '/captures/' + encodeURIComponent(entry.id) + '/attachments/' + index
+            attachment.target = '_blank'; attachment.rel = 'noreferrer'; attachment.textContent = '▧' + index
+            attachment.title = 'Open screenshot ' + index; attachment.setAttribute('aria-label', 'Open screenshot ' + index + ' for ' + entry.id)
+            item.append(attachment)
+          }
+          item.append(copy, state); list.append(item)
         }
       } catch { list.textContent = 'Unable to load recent captures.' }
     }

@@ -11,7 +11,7 @@ Paste, drop, or select up to four screenshots, add a short note, and Project Inb
 - Runs a zero-dependency browser app on `127.0.0.1`.
 - Saves each message as an `INBOX-*.md` file with optional PNG, JPEG, WebP, or GIF attachments.
 - Supports up to four removable screenshot previews in a horizontal strip.
-- Shows recent captures and their `new`, `triaged`, or `done` state, with read-only Markdown links and copyable IDs.
+- Shows raw inbox captures and their `new`, `triaged`, or `done` processing state separately from accepted changes in a configured project ticket register, with read-only Markdown and numbered screenshot links plus copyable IDs.
 - Remembers a light or dark theme in the browser.
 - Offers a small project accent palette so concurrent inboxes are easier to distinguish.
 - Fits into an existing project workflow instead of inventing a new one.

@@ -4,6 +4,8 @@
 
 - Replaced olive-tinted surfaces with a neutral technical palette, made blue the generic accent, and followed the operating-system theme until a browser preference is saved.
 - Added read-only Markdown links and copy-ID controls to recent captures.
+- Added compact numbered links for opening recent-capture screenshots directly in the browser.
+- Clarified that inbox captures are raw evidence whose processing state is separate from accepted changes in the project ticket register.
 - Replaced the README workflow screenshot with the approved neutral-blue capture.
 - Clarified that a newly installed skill is used in a following turn, with a Codex restart only when automatic discovery does not expose it.
 - Reduced the Codex installer prompt to the skill source, avoiding consumer-side repository verification.

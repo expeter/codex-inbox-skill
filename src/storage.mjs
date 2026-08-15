@@ -15,6 +15,12 @@ const IMAGE_TYPES = new Map([
   ['image/webp', { extension: 'webp', signature: bytes => bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP' }],
 ])
 const ENTRY_ID_PATTERN = /^INBOX-\d{8}-\d{6}-[a-z0-9]{1,12}$/
+const ATTACHMENT_CONTENT_TYPES = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+}
 
 function compactTimestamp(date) {
   return date.toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
@@ -174,6 +180,15 @@ function frontmatterValue(document, key) {
   try { return JSON.parse(match[1]) } catch { return match[1].trim() }
 }
 
+function attachmentNames(document, id) {
+  const attachments = frontmatterValue(document, 'attachments')
+  const attachment = frontmatterValue(document, 'attachment')
+  const candidates = Array.isArray(attachments) ? attachments : attachment ? [attachment] : []
+  return candidates.filter(name => typeof name === 'string'
+    && name.startsWith(id)
+    && /^(?:-[2-4])?\.(?:png|jpg|webp|gif)$/.test(name.slice(id.length))).slice(0, MAX_IMAGES)
+}
+
 export async function listInboxEntries(config) {
   const inboxPath = await safeInboxPath(config, { create: false })
   if (!inboxPath) return []
@@ -188,12 +203,14 @@ export async function listInboxEntries(config) {
   const noteNames = names.filter(name => /^INBOX-.*\.md$/.test(name)).sort().reverse()
   return Promise.all(noteNames.map(async name => {
     const document = await readFile(resolve(inboxPath, name), 'utf8')
+    const id = name.slice(0, -3)
     return {
-      id: frontmatterValue(document, 'id') ?? name.slice(0, -3),
+      id,
       status: frontmatterValue(document, 'status') ?? 'legacy',
       created: frontmatterValue(document, 'created') ?? null,
       workflow: frontmatterValue(document, 'workflow') ?? null,
       path: relative(config.projectRoot, resolve(inboxPath, name)),
+      attachmentCount: attachmentNames(document, id).length,
     }
   }))
 }
@@ -212,4 +229,17 @@ export async function readInboxEntry(config, id) {
   }
   if (stats.isSymbolicLink() || !stats.isFile()) throw new Error('Inbox item is not a regular file.')
   return readFile(notePath, 'utf8')
+}
+
+export async function readInboxAttachment(config, id, number) {
+  if (!Number.isInteger(number) || number < 1 || number > MAX_IMAGES) throw new Error('Invalid attachment number.')
+  const document = await readInboxEntry(config, id)
+  const name = attachmentNames(document, id)[number - 1]
+  if (!name) throw new Error('Inbox attachment not found.')
+  const inboxPath = await safeInboxPath(config, { create: false })
+  const attachmentPath = resolve(inboxPath, name)
+  const stats = await lstat(attachmentPath)
+  if (stats.isSymbolicLink() || !stats.isFile()) throw new Error('Inbox attachment is not a regular file.')
+  const extension = name.slice(name.lastIndexOf('.') + 1)
+  return { bytes: await readFile(attachmentPath), contentType: ATTACHMENT_CONTENT_TYPES[extension] }
 }
