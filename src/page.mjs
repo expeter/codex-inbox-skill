@@ -26,11 +26,11 @@ export function renderInboxPage(config) {
   const inboxDir = html(config.inboxDir)
   const inboxPath = html(`${projectPathValue}${config.inboxDir === '.' ? '' : `/${config.inboxDir}`}`)
   const ticketRegisterLink = config.workflow.profile === 'spec-driven' && config.workflow.ticketRegister
-    ? '<a class="ticket-link" href="/workflow/tickets" target="_blank" rel="noreferrer">project tickets ↗</a>'
+    ? '<a class="ticket-link" href="/workflow/tickets" target="_blank" rel="noreferrer">implementation tickets ↗</a>'
     : ''
   const recentHelp = ticketRegisterLink
-    ? `Raw notes and screenshots saved in ${inboxDir}/. Capture status tracks triage here; accepted changes are tracked separately in the project ticket register.`
-    : `Raw notes and screenshots saved in ${inboxDir}/. Status tracks how each capture has been processed.`
+    ? `Inbox submissions below are raw reports saved in ${inboxDir}/. Implementation tickets are accepted project changes tracked separately.`
+    : `Inbox submissions below are raw reports saved in ${inboxDir}/. Status tracks how each submission has been processed.`
   return String.raw`<!doctype html>
 <html lang="en" data-accent="${html(config.appearance.accent)}">
 <head>
@@ -182,11 +182,13 @@ export function renderInboxPage(config) {
     .ticket-link { color: var(--amber); font-size: 12px; text-decoration: none; }
     .ticket-link:hover { text-decoration: underline; }
     #recent-list { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }
-    #recent-list li { display: flex; gap: 10px; padding: 7px; border-bottom: 1px solid var(--line); border-radius: 4px; }
+    #recent-list li { display: flex; align-items: center; gap: 10px; padding: 7px; border-bottom: 1px solid var(--line); border-radius: 4px; }
     #recent-list li.reusing { background: var(--drop-active); color: var(--accent); }
     #recent-list li.reusing::before { content: '→'; flex: none; color: var(--accent); font-weight: 700; }
-    #recent-list .item-id { flex: 1; min-width: 0; overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+    #recent-list .item-summary { display: grid; flex: 1; min-width: 0; gap: 2px; }
+    #recent-list .item-id { min-width: 0; overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
     #recent-list .item-id:hover { color: var(--accent); text-decoration: underline; }
+    #recent-list .source-ref { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
     #recent-list .copy-id { flex: none; width: 25px; height: 25px; margin: -4px 0; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font: 15px/1 ui-sans-serif, system-ui, sans-serif; }
     #recent-list .copy-id:hover, #recent-list .copy-id:focus-visible { border-color: var(--line); color: var(--accent); }
     input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
@@ -210,11 +212,11 @@ export function renderInboxPage(config) {
       <textarea id="message" maxlength="4000" placeholder="What happened? What did you expect instead?"></textarea>
       <div class="actions">
         <button id="submit" type="button">save item ↵</button>
-        <button class="secondary" id="cancel-reuse" type="button" hidden>cancel follow-up</button>
+        <button class="secondary" id="cancel-reuse" type="button" hidden>cancel</button>
         <span id="status" role="status" aria-live="polite"></span>
       </div>
       <section class="recent" aria-labelledby="recent-title">
-        <div class="recent-heading"><h2 id="recent-title">&gt; inbox captures</h2>${ticketRegisterLink}</div>
+        <div class="recent-heading"><h2 id="recent-title">&gt; inbox submissions</h2>${ticketRegisterLink}</div>
         <p class="recent-help">${recentHelp}</p>
         <ul id="recent-list"><li>loading…</li></ul>
       </section>
@@ -347,7 +349,7 @@ export function renderInboxPage(config) {
         useFiles(files)
         message.value = entry.message
         selectedCaptureId = id
-        messageLabel.textContent = '> follow-up to ' + id
+        messageLabel.textContent = '> follow-up from: ' + id
         submit.textContent = 'save as new capture ↵'
         cancelReuse.hidden = false
         selectSourceRow()
@@ -371,16 +373,22 @@ export function renderInboxPage(config) {
         for (const entry of result.entries.slice(0, 8)) {
           const item = document.createElement('li')
           item.dataset.captureId = entry.id
+          const summary = document.createElement('div'); summary.className = 'item-summary'
           const id = document.createElement('button'); id.className = 'item-id'; id.type = 'button'; id.textContent = entry.id
           id.title = 'Reuse as a new capture'; id.addEventListener('click', () => reuseCapture(entry.id))
+          summary.append(id)
+          if (entry.source) {
+            const source = document.createElement('span'); source.className = 'source-ref'; source.textContent = '↳ follow-up from: ' + entry.source
+            summary.append(source)
+          }
           const copy = document.createElement('button'); copy.className = 'copy-id'; copy.type = 'button'; copy.textContent = '⧉'
           copy.title = 'Copy capture ID'; copy.setAttribute('aria-label', 'Copy ' + entry.id)
           copy.addEventListener('click', () => copyId(entry.id))
           const state = document.createElement('span'); state.textContent = entry.status
-          item.append(id, copy, state); list.append(item)
+          item.append(summary, copy, state); list.append(item)
         }
         selectSourceRow()
-      } catch { list.textContent = 'Unable to load recent captures.' }
+      } catch { list.textContent = 'Unable to load inbox submissions.' }
     }
     cancelReuse.addEventListener('click', () => resetReuse({ clear: true }))
     submit.addEventListener('click', async () => {

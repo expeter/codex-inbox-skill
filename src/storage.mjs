@@ -156,6 +156,7 @@ export async function saveInboxEntry(config, payload, now = new Date(), token = 
     '',
     `# ${id}`,
     '',
+    ...(sourceId ? [`Follow-up from: ${sourceId}`, ''] : []),
     '## Message',
     '',
     message,
@@ -241,6 +242,7 @@ export async function listInboxEntries(config) {
       status: frontmatterValue(document, 'status') ?? 'legacy',
       created: frontmatterValue(document, 'created') ?? null,
       workflow: frontmatterValue(document, 'workflow') ?? null,
+      source: frontmatterValue(document, 'source') ?? null,
       path: relative(config.projectRoot, resolve(inboxPath, name)),
       attachmentCount: attachmentNames(document, id).length,
     }

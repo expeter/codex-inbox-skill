@@ -120,15 +120,17 @@ test('the capture page keeps its small controls contextual', async () => {
   assert.match(genericPage, /navigator\.clipboard\.writeText\(id\)/)
   assert.match(genericPage, /copy\.className = 'copy-id'/)
   assert.match(genericPage, /reuseCapture\(entry\.id\)/)
-  assert.match(genericPage, /messageLabel\.textContent = '> follow-up to ' \+ id/)
+  assert.match(genericPage, /messageLabel\.textContent = '> follow-up from: ' \+ id/)
   assert.match(genericPage, /save as new capture ↵/)
   assert.match(genericPage, /sourceId: selectedCaptureId \|\| undefined/)
   assert.match(genericPage, /classList\.toggle\('reusing'/)
   assert.match(genericPage, /new File\(\[blob\]/)
+  assert.match(genericPage, /source\.textContent = '↳ follow-up from: ' \+ entry\.source/)
+  assert.match(genericPage, />cancel<\/button>/)
   assert.doesNotMatch(genericPage, /<dialog/)
   assert.doesNotMatch(genericPage, /method: 'PATCH'/)
-  assert.match(genericPage, /Raw notes and screenshots saved in inbox\//)
-  assert.match(genericPage, /Status tracks how each capture has been processed/)
+  assert.match(genericPage, /Inbox submissions below are raw reports saved in inbox\//)
+  assert.match(genericPage, /Status tracks how each submission has been processed/)
   assert.doesNotMatch(genericPage, /ticket states/)
   for (const script of [...genericPage.matchAll(/<script>([\s\S]*?)<\/script>/g)]) {
     assert.doesNotThrow(() => new Script(script[1]))
@@ -138,8 +140,8 @@ test('the capture page keeps its small controls contextual', async () => {
     profile: 'spec-driven', ticketRegister: 'docs/tickets.md',
   } }))
   assert.match(specPage, /href="\/workflow\/tickets"/)
-  assert.match(specPage, /project tickets ↗/)
-  assert.match(specPage, /Capture status tracks triage here; accepted changes are tracked separately/)
+  assert.match(specPage, /implementation tickets ↗/)
+  assert.match(specPage, /Implementation tickets are accepted project changes tracked separately/)
 })
 
 test('a message and screenshot become one workflow item', async () => {
@@ -166,6 +168,7 @@ test('a message and screenshot become one workflow item', async () => {
     status: 'new',
     created: '2026-08-09T10:11:12.000Z',
     workflow: 'Ticket register',
+    source: null,
     path: result.notePath,
     attachmentCount: 1,
   }])
@@ -205,6 +208,8 @@ test('follow-ups preserve completed captures and reopen the evidence under a new
   assert.equal(followUpDetails.status, 'new')
   assert.equal(followUpDetails.source, result.id)
   assert.equal(followUpDetails.attachmentCount, 1)
+  assert.equal((await listInboxEntries(config)).find(entry => entry.id === followUp.id).source, result.id)
+  assert.match(await readFile(join(root, followUp.notePath), 'utf8'), new RegExp(`Follow-up from: ${result.id}`))
   await assert.rejects(saveInboxEntry(config, {
     message: 'Missing source.', sourceId: 'INBOX-20260809-101112-missing',
   }), /not found/)

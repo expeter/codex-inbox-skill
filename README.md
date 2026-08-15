@@ -11,7 +11,7 @@ Paste, drop, or select up to four screenshots, add a short note, and Project Inb
 - Runs a zero-dependency browser app on `127.0.0.1`.
 - Saves each message as an `INBOX-*.md` file with optional PNG, JPEG, WebP, or GIF attachments.
 - Supports up to four removable screenshot previews in a horizontal strip.
-- Shows raw inbox captures and their `new`, `triaged`, or `done` processing state separately from accepted changes in a configured project ticket register.
+- Shows raw inbox submissions and their `new`, `triaged`, or `done` processing state separately from accepted changes in a configured implementation-ticket register.
 - Reuses a capture in the main composer with its message and screenshots, then saves the revision as a new `new` capture linked to the untouched source.
 - Keeps a quick copy-ID control beside each capture.
 - Remembers a light or dark theme in the browser.
@@ -23,7 +23,7 @@ It does **not** run a watcher, start an agent automatically, publish anything, o
 
 ## Workflow preview
 
-![Project Inbox capture page showing project identity, workflow metadata, screenshot input, message input, recent captures, and the configured ticket-register link](docs/images/project-inbox-workflow.png)
+![Project Inbox capture page showing project identity, workflow metadata, screenshot input, message input, inbox submissions, and the configured implementation-ticket link](docs/images/project-inbox-workflow.png)
 
 The capture page keeps the active project name and filesystem path visible,
 records the repository's configured workflow, and shows recent items without
@@ -119,7 +119,7 @@ inbox/
 ```
 
 The Markdown frontmatter records a stable capture ID, creation time, state, workflow, and attachment names. The message and configured processing guidance remain readable without Project Inbox.
-Selecting a saved capture loads its message and screenshots into the main composer. Submitting creates a new capture with a `source` reference; the selected capture and its state remain unchanged.
+Selecting a saved submission loads its message and screenshots into the main composer. Submitting creates a new capture with a `source` reference; the selected capture and its state remain unchanged. Linked submissions show `follow-up from: <ID>` in both the recent list and saved Markdown body.
 
 Whether captures are versioned is a per-project decision, not a skill-installation option. Project Inbox never changes `.gitignore` automatically. For public repositories, ignoring `/inbox/` is recommended because raw notes and screenshots can contain sensitive or noisy evidence; map sanitized outcomes into the repository's normal tracked ticket workflow. Teams that intentionally want versioned evidence can commit the directory instead.
 

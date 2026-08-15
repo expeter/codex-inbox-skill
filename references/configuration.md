@@ -57,7 +57,7 @@ Keep the generic workflow unless the project already uses, or explicitly wants, 
 - `profile` is either `generic` (the default) or `spec-driven`.
 - `ticketPrefixes` contains the allowed stable identifier classes. The SPEC-driven defaults are `FR`, `CR`, `BUG`, and `SPEC`.
 - `repositoryInstructions` and `specifications` are arrays of project-relative files or directories Codex should inspect.
-- `ticketRegister`, `milestones`, and `changelog` are optional project-relative locations. For the SPEC-driven profile, a configured ticket register appears as a read-only link beside recent captures.
+- `ticketRegister`, `milestones`, and `changelog` are optional project-relative locations. For the SPEC-driven profile, a configured implementation-ticket register appears as a read-only link beside recent inbox submissions.
 - `focusedTestCommand` records the project's preferred focused verification command. The inbox server never executes it.
 
 Existing configuration files need no changes. Custom `workflow.instructions` continue to override the profile's default processing guidance.
