@@ -4,7 +4,7 @@ A tiny localhost inbox for sending visual feedback to Codex without turning your
 
 Paste, drop, or select up to four screenshots, add a short note, and Project Inbox saves the capture as durable Markdown beside your code. Codex can list or triage those captures later when you explicitly ask.
 
-[Install with Codex](#install-with-codex) · [Install globally](#install-globally) · [Install in one workspace](#install-in-one-workspace) · [Run the server directly](#run-the-server-directly)
+[Install with Codex](#install-with-codex) · [Install globally with Git](#install-globally-with-git) · [Install in one workspace](#install-in-one-workspace) · [Run the server directly](#run-the-server-directly)
 
 ## What it does
 
@@ -48,19 +48,20 @@ Use $skill-installer to install project-inbox from:
 https://github.com/expeter/codex-inbox-skill
 ```
 
-This creates a user-scoped snapshot. In the next turn, start it with:
+Codex installs a non-Git snapshot, typically at
+`~/.codex/skills/project-inbox`. In the next turn, start it with:
 
 ```text
 Use $project-inbox to start this project's local inbox.
 ```
 
 Codex normally detects newly installed skills automatically. If
-`$project-inbox` is not available, restart Codex and repeat that request. Repeat
-the installation request when you want to install a newer revision.
+`$project-inbox` is not available, restart Codex and repeat that request. To
+update the snapshot later, repeat the same installation request.
 
-### Install globally
+### Install globally with Git
 
-Use a user-scoped checkout to make the skill available across projects:
+Use a user-scoped Git checkout when you want `git pull` updates:
 
 ```bash
 mkdir -p ~/.agents/skills

@@ -161,10 +161,6 @@ export function renderInboxPage(config) {
     .empty strong { display: block; margin-bottom: 9px; color: var(--text); font: 650 18px ui-sans-serif, system-ui, sans-serif; }
     .empty span { color: var(--muted); font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
     label { display: block; margin: 0 0 8px; color: var(--accent); font-size: 13px; font-weight: 700; }
-    .message-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-    .message-heading label { margin: 0; }
-    #cancel-reuse { margin-left: auto; padding: 2px 0; border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 500; }
-    #cancel-reuse:hover { color: var(--accent); text-decoration: underline; }
     textarea {
       width: 100%; min-height: 120px; resize: vertical;
       padding: 14px 15px; border: 1px solid var(--strong-line); border-radius: 7px;
@@ -212,13 +208,11 @@ export function renderInboxPage(config) {
         <div class="empty"><strong>Paste or drop screenshots</strong><span>Up to four images · Ctrl+V works anywhere · click to choose files · optional</span></div>
         <div id="previews" aria-label="Screenshot previews"></div>
       </div>
-      <div class="message-heading">
-        <label id="message-label" for="message">&gt; message</label>
-        <button class="secondary" id="cancel-reuse" type="button" hidden>cancel</button>
-      </div>
+      <label id="message-label" for="message">&gt; message</label>
       <textarea id="message" maxlength="4000" placeholder="What happened? What did you expect instead?"></textarea>
       <div class="actions">
         <button id="submit" type="button">save ↵</button>
+        <button class="secondary" id="cancel-reuse" type="button" hidden>cancel</button>
         <span id="status" role="status" aria-live="polite"></span>
       </div>
       <section class="recent" aria-labelledby="recent-title">

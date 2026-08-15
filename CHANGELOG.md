@@ -6,9 +6,10 @@
 - Added quick copy-ID controls to capture rows.
 - Added an append-only follow-up flow that reuses an existing capture in the main composer, highlights its source row, and saves revisions under a new linked capture ID.
 - Labeled raw reports as inbox submissions and accepted project changes as implementation tickets, and displayed each follow-up's source ID in both the recent list and saved Markdown body.
-- Simplified prepared-follow-up controls to a consistent `save` action, a contextual `cancel` beside the source label, and concise status feedback.
+- Simplified prepared-follow-up controls to compact `save` and full-size `cancel` actions grouped together, plus concise status feedback.
 - Replaced the README workflow screenshot with the approved neutral-blue capture.
 - Clarified that a newly installed skill is used in a following turn, with a Codex restart only when automatic discovery does not expose it.
+- Distinguished Codex-managed non-Git snapshots from global Git checkouts and their different update methods.
 - Reduced the Codex installer prompt to the skill source, avoiding consumer-side repository verification.
 - Streamlined skill setup into copyable Codex-assisted, global, workspace-local, and direct-server paths with top-level links.
 - Included the README workflow image in the published package contents.
