@@ -11,7 +11,7 @@ Paste, drop, or select up to four screenshots, add a short note, and Project Inb
 - Runs a zero-dependency browser app on `127.0.0.1`.
 - Saves each message as an `INBOX-*.md` file with optional PNG, JPEG, WebP, or GIF attachments.
 - Supports up to four removable screenshot previews in a horizontal strip.
-- Shows recent captures and their `new`, `triaged`, or `done` state.
+- Shows recent captures and their `new`, `triaged`, or `done` state, with read-only Markdown links and copyable IDs.
 - Remembers a light or dark theme in the browser.
 - Offers a small project accent palette so concurrent inboxes are easier to distinguish.
 - Fits into an existing project workflow instead of inventing a new one.
@@ -144,7 +144,7 @@ Add `.project-inbox.json` to the target project's root when the defaults are not
 }
 ```
 
-All fields are optional. The generic workflow and green accent stay the defaults. Available accents are `green`, `blue`, `violet`, `amber`, and `rose`; each has tested light and dark variants. Project name and path remain the primary safeguards against submitting to the wrong inbox.
+All fields are optional. The generic workflow and blue accent stay the defaults. Available accents are `blue`, `green`, `violet`, `amber`, and `rose`; each has tested light and dark variants. Shared surfaces are neutral graphite in dark mode and cool white in light mode. The initial theme follows the operating-system preference, while a manual choice remains stored in the browser. Project name and path remain the primary safeguards against submitting to the wrong inbox.
 
 Projects with an established specification and ticket lifecycle can opt into the portable `spec-driven` profile. It can describe ticket prefixes, repository instructions, specifications, ticket register, milestones, changelog, and a focused test command. Project Inbox only records and displays that guidance; it never executes configured commands or edits workflow documents automatically.
 

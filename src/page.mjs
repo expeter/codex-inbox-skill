@@ -34,60 +34,60 @@ export function renderInboxPage(config) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${projectName} · Project inbox</title>
-  <script>try { document.documentElement.dataset.theme = localStorage.getItem('project-inbox-theme') === 'light' ? 'light' : 'dark' } catch { document.documentElement.dataset.theme = 'dark' }</script>
+  <script>try { const saved = localStorage.getItem('project-inbox-theme'); document.documentElement.dataset.theme = saved === 'light' || saved === 'dark' ? saved : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark' } catch { document.documentElement.dataset.theme = 'dark' }</script>
   <style>
     :root {
       color-scheme: dark;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      --page: #171916;
-      --page-end: #10120f;
-      --paper: #20231f;
-      --bar: #292c27;
-      --field: #151714;
-      --drop: #191b18;
-      --drop-active: #24251e;
-      --preview: #10120f;
-      --text: #eef0e8;
-      --soft-text: #c1c5bb;
-      --line: #3b4038;
-      --strong-line: #4b5048;
-      --muted: #a4aa9c;
-      --accent: #a8d58d;
-      --amber: #e2bd6c;
-      --red: #ef9188;
-      --button: #2e4729;
-      --button-line: #789969;
-      --button-text: #f5f8f1;
-      --shadow: #0008;
+      --page: #0f1115;
+      --page-end: #090b0f;
+      --paper: #171a21;
+      --bar: #1d212a;
+      --field: #0c0f14;
+      --drop: #12161d;
+      --drop-active: #172331;
+      --preview: #0b0e13;
+      --text: #f1f5f9;
+      --soft-text: #cbd5e1;
+      --line: #2a303b;
+      --strong-line: #3a4352;
+      --muted: #94a3b8;
+      --accent: #67c1f5;
+      --amber: #f2bd5b;
+      --red: #f28b82;
+      --button: #16324a;
+      --button-line: #3f7ca6;
+      --button-text: #eff8ff;
+      --shadow: #000a;
     }
-    :root[data-accent="blue"] { --accent: #8fc7ed; --button: #233f54; --button-line: #6797b9; }
+    :root[data-accent="green"] { --accent: #91d17b; --button: #1d3d28; --button-line: #5f9463; }
     :root[data-accent="violet"] { --accent: #c3adf2; --button: #3b3153; --button-line: #8874b4; }
     :root[data-accent="amber"] { --accent: #e2bd6c; --button: #4b3b21; --button-line: #a98746; }
     :root[data-accent="rose"] { --accent: #eea0ae; --button: #4d2d35; --button-line: #ad6876; }
     :root[data-theme="light"] {
       color-scheme: light;
-      --page: #edece5;
-      --page-end: #d9ddd2;
-      --paper: #fbfcf8;
-      --bar: #f0f2eb;
+      --page: #f3f5f7;
+      --page-end: #e8edf2;
+      --paper: #fff;
+      --bar: #f0f3f7;
       --field: #fff;
-      --drop: #f7f8f3;
-      --drop-active: #fff8e6;
-      --preview: #e9ece4;
-      --text: #20251e;
-      --soft-text: #51594d;
-      --line: #cdd2c7;
-      --strong-line: #aab2a5;
-      --muted: #687164;
-      --accent: #356d2e;
+      --drop: #f7f9fb;
+      --drop-active: #eef7fc;
+      --preview: #edf1f5;
+      --text: #18202b;
+      --soft-text: #465364;
+      --line: #d8dee7;
+      --strong-line: #b8c2cf;
+      --muted: #667085;
+      --accent: #176b9e;
       --amber: #9b6814;
-      --red: #a33d35;
-      --button: #dcebd5;
-      --button-line: #719568;
-      --button-text: #193416;
-      --shadow: #38412f2b;
+      --red: #b2433b;
+      --button: #e1f1fa;
+      --button-line: #75a9c9;
+      --button-text: #12374f;
+      --shadow: #25364a24;
     }
-    :root[data-theme="light"][data-accent="blue"] { --accent: #27678f; --button: #d9ebf5; --button-line: #6b98b5; --button-text: #183449; }
+    :root[data-theme="light"][data-accent="green"] { --accent: #2f6f3e; --button: #e1f1e4; --button-line: #79a581; --button-text: #173b20; }
     :root[data-theme="light"][data-accent="violet"] { --accent: #684ca0; --button: #e8e0f5; --button-line: #917bb6; --button-text: #302147; }
     :root[data-theme="light"][data-accent="amber"] { --accent: #8a5c10; --button: #f5ead1; --button-line: #b28b45; --button-text: #44300e; }
     :root[data-theme="light"][data-accent="rose"] { --accent: #a33f58; --button: #f5dfe4; --button-line: #bd7888; --button-text: #4c1f2b; }
@@ -121,7 +121,7 @@ export function renderInboxPage(config) {
       font-size: 13px;
     }
     .window-dots { display: flex; gap: 8px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: #6c7168; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #657080; }
     .dot:first-child { background: #c97868; }
     .dot:nth-child(2) { background: #d4aa60; }
     .dot:nth-child(3) { background: #80aa73; }
@@ -152,7 +152,7 @@ export function renderInboxPage(config) {
     #previews { display: none; width: 100%; gap: 12px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; }
     .preview-card { position: relative; flex: 0 0 min(320px, 82%); min-height: 210px; display: grid; place-items: center; scroll-snap-align: start; }
     .preview-card img { width: 100%; max-height: 260px; object-fit: contain; border-radius: 5px; background: var(--preview); }
-    .remove-image { position: absolute; top: 7px; right: 7px; width: 28px; height: 28px; padding: 0; border: 1px solid #ffffff88; border-radius: 50%; background: #171916dd; color: #fff; font: 700 17px/1 ui-sans-serif, system-ui, sans-serif; box-shadow: 0 2px 8px #0007; }
+    .remove-image { position: absolute; top: 7px; right: 7px; width: 28px; height: 28px; padding: 0; border: 1px solid #ffffff88; border-radius: 50%; background: #11151bdd; color: #fff; font: 700 17px/1 ui-sans-serif, system-ui, sans-serif; box-shadow: 0 2px 8px #0007; }
     #dropzone.has-image #previews { display: flex; }
     #dropzone.has-image .empty { display: none; }
     .empty strong { display: block; margin-bottom: 9px; color: var(--text); font: 650 18px ui-sans-serif, system-ui, sans-serif; }
@@ -177,7 +177,10 @@ export function renderInboxPage(config) {
     .ticket-link:hover { text-decoration: underline; }
     #recent-list { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; }
     #recent-list li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-    #recent-list .item-id { flex: 1; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+    #recent-list .item-id { flex: 1; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+    #recent-list .item-id:hover { color: var(--accent); text-decoration: underline; }
+    #recent-list .copy-id { flex: none; width: 25px; height: 25px; margin: -4px 0; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font: 15px/1 ui-sans-serif, system-ui, sans-serif; }
+    #recent-list .copy-id:hover, #recent-list .copy-id:focus-visible { border-color: var(--line); color: var(--accent); }
     input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     @media (max-width: 560px) { .content { padding: 22px; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } }
   </style>
@@ -301,9 +304,16 @@ export function renderInboxPage(config) {
         }
         for (const entry of result.entries.slice(0, 8)) {
           const item = document.createElement('li')
-          const id = document.createElement('span'); id.className = 'item-id'; id.textContent = entry.id
+          const id = document.createElement('a'); id.className = 'item-id'; id.textContent = entry.id
+          id.href = '/captures/' + encodeURIComponent(entry.id); id.target = '_blank'; id.rel = 'noreferrer'
+          const copy = document.createElement('button'); copy.className = 'copy-id'; copy.type = 'button'; copy.textContent = '⧉'
+          copy.title = 'Copy capture ID'; copy.setAttribute('aria-label', 'Copy ' + entry.id)
+          copy.addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(entry.id); setStatus('copied ' + entry.id, 'success') }
+            catch { setStatus('Unable to copy the capture ID.', 'error') }
+          })
           const state = document.createElement('span'); state.textContent = entry.status
-          item.append(id, state); list.append(item)
+          item.append(id, copy, state); list.append(item)
         }
       } catch { list.textContent = 'Unable to load recent captures.' }
     }

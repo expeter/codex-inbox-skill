@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import { relative, resolve, sep } from 'node:path'
 import { loadConfig } from './config.mjs'
 import { renderInboxPage } from './page.mjs'
-import { listInboxEntries, MAX_REQUEST_BYTES, saveInboxEntry } from './storage.mjs'
+import { listInboxEntries, MAX_REQUEST_BYTES, readInboxEntry, saveInboxEntry } from './storage.mjs'
 
 export const LOOPBACK_HOST = '127.0.0.1'
 export const DEFAULT_PORT = 4783
@@ -90,6 +90,19 @@ export async function createInboxServer({ projectRoot }) {
       }
       return
     }
+    const captureMatch = /^\/captures\/(INBOX-\d{8}-\d{6}-[a-z0-9]{1,12})$/.exec(pathname)
+    if (captureMatch && request.method === 'GET') {
+      try {
+        respond(response, 200, await readInboxEntry(config, captureMatch[1]), 'text/markdown; charset=utf-8')
+      } catch (error) {
+        respond(response, 404, error instanceof Error ? error.message : 'Unable to read the inbox item.')
+      }
+      return
+    }
+    if (pathname.startsWith('/captures/') && request.method === 'GET') {
+      respond(response, 404, 'Inbox item not found.')
+      return
+    }
     if (pathname === '/workflow/tickets' && request.method === 'GET') {
       if (config.workflow.profile !== 'spec-driven' || !config.workflow.ticketRegister) {
         respond(response, 404, 'No ticket register is configured.')
@@ -115,7 +128,7 @@ export async function createInboxServer({ projectRoot }) {
       }
       return
     }
-    if (pathname === '/api/entries' || pathname === '/api/health' || pathname === '/workflow/tickets' || pathname === '/' || pathname.startsWith('/inbox')) {
+    if (pathname === '/api/entries' || pathname === '/api/health' || pathname === '/workflow/tickets' || pathname === '/' || pathname.startsWith('/inbox') || pathname.startsWith('/captures/')) {
       response.setHeader('Allow', pathname === '/api/entries' ? 'GET, POST' : 'GET')
       respond(response, 405, 'Method not allowed.')
       return

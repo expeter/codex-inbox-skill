@@ -14,6 +14,7 @@ const IMAGE_TYPES = new Map([
   ['image/gif', { extension: 'gif', signature: bytes => ['GIF87a', 'GIF89a'].includes(bytes.subarray(0, 6).toString('ascii')) }],
   ['image/webp', { extension: 'webp', signature: bytes => bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP' }],
 ])
+const ENTRY_ID_PATTERN = /^INBOX-\d{8}-\d{6}-[a-z0-9]{1,12}$/
 
 function compactTimestamp(date) {
   return date.toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
@@ -195,4 +196,20 @@ export async function listInboxEntries(config) {
       path: relative(config.projectRoot, resolve(inboxPath, name)),
     }
   }))
+}
+
+export async function readInboxEntry(config, id) {
+  if (typeof id !== 'string' || !ENTRY_ID_PATTERN.test(id)) throw new Error('Invalid inbox ID.')
+  const inboxPath = await safeInboxPath(config, { create: false })
+  if (!inboxPath) throw new Error('Inbox item not found.')
+  const notePath = resolve(inboxPath, `${id}.md`)
+  let stats
+  try {
+    stats = await lstat(notePath)
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw new Error('Inbox item not found.')
+    throw error
+  }
+  if (stats.isSymbolicLink() || !stats.isFile()) throw new Error('Inbox item is not a regular file.')
+  return readFile(notePath, 'utf8')
 }

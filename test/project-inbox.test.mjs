@@ -72,7 +72,7 @@ test('configuration keeps the inbox inside the project root', async () => {
   assert.equal(config.projectName, 'Paper trail')
   assert.equal(config.inboxDir, '.feedback/inbox')
   assert.equal(config.workflow.label, 'Ticket register')
-  assert.equal(config.appearance.accent, 'green')
+  assert.equal(config.appearance.accent, 'blue')
   assert.equal(normalizeConfig(root, { appearance: { accent: 'violet' } }).appearance.accent, 'violet')
   assert.throws(() => normalizeConfig(root, { appearance: { accent: 'neon' } }), /must be one of/)
 })
@@ -100,6 +100,14 @@ test('the SPEC-driven profile is optional and validates portable workflow locati
 
 test('the capture page keeps its small controls contextual', async () => {
   const root = await temporaryProject()
+  const defaultPage = renderInboxPage(normalizeConfig(root))
+  assert.match(defaultPage, /data-accent="blue"/)
+  assert.match(defaultPage, /--page: #0f1115/)
+  assert.match(defaultPage, /--paper: #fff/)
+  assert.match(defaultPage, /prefers-color-scheme: light/)
+  assert.match(defaultPage, /saved === 'light' \|\| saved === 'dark'/)
+  assert.doesNotMatch(defaultPage, /--page: #171916/)
+
   const genericPage = renderInboxPage(normalizeConfig(root, {
     projectName: 'Paper trail', appearance: { accent: 'violet' },
   }))
@@ -109,6 +117,9 @@ test('the capture page keeps its small controls contextual', async () => {
   assert.match(genericPage, /remove-image/)
   assert.match(genericPage, /overflow-x: auto/)
   assert.match(genericPage, /project-inbox-theme/)
+  assert.match(genericPage, /navigator\.clipboard\.writeText\(entry\.id\)/)
+  assert.match(genericPage, /id\.href = '\/captures\/'/)
+  assert.match(genericPage, /copy\.className = 'copy-id'/)
   assert.doesNotMatch(genericPage, /ticket states/)
   for (const script of [...genericPage.matchAll(/<script>([\s\S]*?)<\/script>/g)]) {
     assert.doesNotThrow(() => new Script(script[1]))
@@ -226,7 +237,13 @@ test('the HTTP server is loopback-only and accepts an entry', async () => {
     assert.match((await response.json()).id, /^INBOX-/)
     const listing = await fetch(`${origin}/api/entries`)
     assert.equal(listing.status, 200)
-    assert.equal((await listing.json()).entries.length, 1)
+    const entries = (await listing.json()).entries
+    assert.equal(entries.length, 1)
+    const capture = await fetch(`${origin}/captures/${entries[0].id}`)
+    assert.equal(capture.status, 200)
+    assert.equal(capture.headers.get('content-type'), 'text/markdown; charset=utf-8')
+    assert.match(await capture.text(), /Captured through HTTP\./)
+    assert.equal((await fetch(`${origin}/captures/not-an-inbox-id`)).status, 404)
   } finally {
     await new Promise(resolve => server.close(resolve))
   }

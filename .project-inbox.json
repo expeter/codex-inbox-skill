@@ -1,7 +1,7 @@
 {
   "projectName": "Project Inbox",
   "appearance": {
-    "accent": "violet"
+    "accent": "blue"
   },
   "workflow": {
     "profile": "spec-driven",
